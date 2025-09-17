@@ -128,8 +128,8 @@ export const configSchema = {
       },
       avatarUrl: {
         type: 'string',
-        default: '',
-        description: 'Bot avatar image URL'
+        default: '/default-chat-icon.svg',
+        description: 'Bot avatar/icon image URL'
       }
     }
   },
