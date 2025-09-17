@@ -44,30 +44,26 @@ const getOrCreateSessionId = () => {
  * @param {Object} props.config.messages - Custom messages
  * @param {Object} props.config.branding - Branding configuration
  * @param {Object} props.customFlows - Custom conversation flows (optional)
- * @param {string} props.startFlow - Starting flow name (optional)
  * @param {boolean} props.open - Whether chat is open (controlled mode)
  * @param {Function} props.onOpenChange - Callback when open state changes
  * @param {boolean} props.embedded - Whether to embed in page vs floating
- * @param {boolean} props.ringEffect - Whether to show ring animation
  * @param {Array} props.headerComponents - Custom header components (optional)
  */
 const QABot = React.forwardRef((props, ref) => {
   const {
     config = {},
     customFlows = null,
-    startFlow = null,
     open = false,
     onOpenChange,
     embedded = false,
-    ringEffect = false,
     headerComponents = null,
     // Extract top-level props that might override config
     enabled = true,
-    loginUrl,
     apiKey,
     welcome,
     userEmail,
-    userName
+    userName,
+    loginUrl
   } = props;
 
   // Session management

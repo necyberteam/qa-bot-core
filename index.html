@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q&A Bot Standalone Demo</title>
+    <script src="./dist/qa-bot-core.standalone.js" defer></script>
+    <script src="./standalone-demo.js" defer></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .demo-controls {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Q&A Bot Standalone Demo</h1>
+    <p>Simple demonstration of the QA Bot using vanilla JavaScript.</p>
+
+    <div class="demo-controls">
+        <h3>Bot Controls</h3>
+        <button onclick="openChat()">Open Chat</button>
+        <button onclick="closeChat()">Close Chat</button>
+        <button onclick="toggleChat()">Toggle Chat</button>
+        <button onclick="sendTestMessage()">Send Test Message</button>
+    </div>
+
+    <!-- Bot will appear as floating chat in corner -->
+    <div id="qa-bot-container"></div>
+</body>
+</html>
