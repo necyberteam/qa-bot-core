@@ -1,0 +1,73 @@
+{
+  "name": "@snf/qa-bot-core",
+  "version": "1.0.0",
+  "description": "A configurable chatbot with RAG-powered Q&A and rating system",
+  "main": "./dist/qa-bot-core.umd.cjs",
+  "module": "./dist/qa-bot-core.js",
+  "exports": {
+    ".": {
+      "import": "./dist/qa-bot-core.js",
+      "require": "./dist/qa-bot-core.umd.cjs"
+    },
+    "./standalone": "./dist/qa-bot-core.standalone.js"
+  },
+  "unpkg": "./dist/qa-bot-core.standalone.js",
+  "types": "index.d.ts",
+  "files": [
+    "dist",
+    "build",
+    "index.d.ts"
+  ],
+  "dependencies": {
+    "@rcb-plugins/html-renderer": "^0.3.1",
+    "@rcb-plugins/markdown-renderer": "^0.3.1",
+    "@rcb-plugins/input-validator": "^0.3.0",
+    "react-chatbotify": "^2.2.0",
+    "uuid": "^11.1.0"
+  },
+  "peerDependencies": {
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
+    "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.23.9",
+    "@babel/core": "^7.23.9",
+    "@babel/preset-env": "^7.23.9",
+    "@babel/preset-react": "^7.23.9",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-replace": "^5.0.7",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@testing-library/react": "^13.4.0",
+    "customize-cra": "^1.0.0",
+    "react": "^18.3.1",
+    "react-app-rewired": "^2.2.1",
+    "react-dom": "^18.3.1",
+    "react-scripts": "5.0.1",
+    "rollup": "^4.9.6",
+    "rollup-plugin-peer-deps-external": "^2.2.4",
+    "rollup-plugin-postcss": "^4.0.2",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "react-app-rewired start",
+    "build": "react-app-rewired build",
+    "build:lib": "rollup -c",
+    "prepublishOnly": "npm run build:lib",
+    "test": "react-app-rewired test"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
