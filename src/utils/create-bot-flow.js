@@ -6,21 +6,21 @@ import { createQAFlow } from './flows/qa-flow';
  * Supports both basic Q&A and custom flows via plugins
  *
  * @param {Object} params Configuration
- * @param {Object} params.config Bot configuration with endpoints
+ * @param {Object} params.config Complete merged bot configuration
  * @param {Object} params.customFlows Optional custom conversation flows
  * @param {string} params.sessionId Session ID for tracking
  * @returns {Object} Complete flow configuration
  */
 export function createBotFlow({
-  config = {},
-  customFlows = null,
+  config,
+  customFlows,
   sessionId
 }) {
   // Always create the base Q&A flow
   const qaFlow = createQAFlow({
-    endpoint: config.endpoints?.qa,
-    ratingEndpoint: config.endpoints?.rating,
-    apiKey: config.apiKey,
+    endpoint: config.core.endpoints.qa,
+    ratingEndpoint: config.core.endpoints.rating,
+    apiKey: config.core.auth.apiKey,
     sessionId
   });
 
@@ -28,7 +28,7 @@ export function createBotFlow({
   if (!customFlows) {
     return {
       start: {
-        message: config.messages?.welcome || "Hello! What can I help you with?",
+        message: config.content.messages.welcome,
         path: "qa_loop"
       },
       ...qaFlow
@@ -42,7 +42,7 @@ export function createBotFlow({
     ...customFlows,
     // Use custom start if provided, otherwise default
     start: customFlows.start || {
-      message: config.messages?.welcome || "Hello! What can I help you with?",
+      message: config.content.messages.welcome,
       path: "qa_loop"
     }
   };

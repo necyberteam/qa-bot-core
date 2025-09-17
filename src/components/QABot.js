@@ -10,7 +10,7 @@ import useThemeColors from '../hooks/useThemeColors';
 import useChatBotSettings from '../hooks/useChatBotSettings';
 import useFocusableSendButton from '../hooks/useFocusableSendButton';
 import useKeyboardNavigation from '../hooks/useKeyboardNavigation';
-import { DEFAULT_CONFIG } from '../config/constants';
+import { mergeConfig } from '../config/schema';
 import { createBotFlow } from '../utils/create-bot-flow';
 
 // Session management
@@ -35,36 +35,26 @@ const getOrCreateSessionId = () => {
  * Q&A Bot Component
  *
  * @param {Object} props
- * @param {Object} props.config - Bot configuration
- * @param {Object} props.config.endpoints - API endpoints
- * @param {string} props.config.endpoints.qa - Q&A endpoint (required)
- * @param {string} props.config.endpoints.rating - Rating endpoint (optional)
- * @param {string} props.config.apiKey - API key for authentication (optional)
- * @param {Object} props.config.theme - Theme configuration
- * @param {Object} props.config.messages - Custom messages
- * @param {Object} props.config.branding - Branding configuration
- * @param {Object} props.customFlows - Custom conversation flows (optional)
- * @param {boolean} props.open - Whether chat is open (controlled mode)
- * @param {Function} props.onOpenChange - Callback when open state changes
- * @param {boolean} props.embedded - Whether to embed in page vs floating
- * @param {Array} props.headerComponents - Custom header components (optional)
+ * @param {Object} props.config - Bot configuration object
+ * @param {string} props.config.core.endpoints.qa - Q&A endpoint (required)
+ * @param {string} props.config.core.endpoints.rating - Rating endpoint (optional)
+ * @param {string} props.apiKey - API key (prop override)
+ * @param {boolean} props.embedded - Embed mode (prop override)
+ * @param {boolean} props.enabled - Bot enabled state (prop override)
+ * @param {boolean} props.open - Chat open state (prop override)
+ * @param {Function} props.onOpenChange - Open state callback (prop override)
+ * @param {string} props.welcome - Welcome message (prop override)
+ * @param {string} props.userEmail - User email (prop override)
+ * @param {string} props.userName - User name (prop override)
+ * @param {string} props.loginUrl - Login URL (prop override)
+ * @param {Array} props.headerComponents - Custom header components (prop override)
+ * @param {Object} props.customFlows - Custom conversation flows (prop override)
  */
 const QABot = React.forwardRef((props, ref) => {
-  const {
-    config = {},
-    customFlows = null,
-    open = false,
-    onOpenChange,
-    embedded = false,
-    headerComponents = null,
-    // Extract top-level props that might override config
-    enabled = true,
-    apiKey,
-    welcome,
-    userEmail,
-    userName,
-    loginUrl
-  } = props;
+  const { config: userConfig = {}, ...propOverrides } = props;
+
+  // Merge configuration using the unified schema (3-layer precedence)
+  const config = mergeConfig(userConfig, propOverrides);
 
   // Session management
   const sessionIdRef = useRef(getOrCreateSessionId());
@@ -72,15 +62,14 @@ const QABot = React.forwardRef((props, ref) => {
 
   // Container ref for theming
   const containerRef = useRef(null);
-  const themeColors = useThemeColors(containerRef, config.theme);
+  const themeColors = useThemeColors(containerRef, config.appearance.theme);
 
   // Generate base settings with hooks
   const baseSettings = useChatBotSettings({
     themeColors,
-    embedded,
-    defaultOpen: false,
-    enabled,
-    loginUrl
+    embedded: config.ui.display.embedded,
+    enabled: config.ui.display.enabled,
+    loginUrl: config.user.loginUrl
   });
 
   // Override with config values using useMemo
@@ -93,25 +82,25 @@ const QABot = React.forwardRef((props, ref) => {
       },
       header: {
         ...baseSettings.header,
-        title: config.branding?.title || DEFAULT_CONFIG.BRANDING.TITLE,
-        avatar: config.branding?.avatarUrl || DEFAULT_CONFIG.BRANDING.AVATAR_URL,
-        buttons: headerComponents || baseSettings.header.buttons
+        title: config.content.branding.title,
+        avatar: config.content.branding.avatarUrl,
+        buttons: config.appearance.customization.headerComponents || baseSettings.header.buttons
       },
       chatInput: {
         ...baseSettings.chatInput,
-        enabledPlaceholderText: config.messages?.placeholder || DEFAULT_CONFIG.PLACEHOLDER_TEXT
+        enabledPlaceholderText: config.content.messages.placeholder
       }
     };
-  }, [baseSettings, themeColors, embedded, config, headerComponents]);
+  }, [baseSettings, themeColors, config]);
 
   // Create flow with config
   const flow = useMemo(() => {
     return createBotFlow({
       config,
-      customFlows,
+      customFlows: config.behavior.flows.customFlows,
       sessionId
     });
-  }, [config, customFlows, sessionId]);
+  }, [config, sessionId]);
 
   // Plugins
   const plugins = [HtmlRenderer(), MarkdownRenderer(), InputValidator()];
@@ -122,16 +111,16 @@ const QABot = React.forwardRef((props, ref) => {
 
   // Handle open state changes
   useEffect(() => {
-    if (!embedded && onOpenChange) {
+    if (!config.ui.display.embedded && config.ui.state.onOpenChange) {
       const handleToggle = (event) => {
         const newState = event.data.newState;
-        onOpenChange(newState);
+        config.ui.state.onOpenChange(newState);
       };
 
       window.addEventListener('rcb-toggle-chat-window', handleToggle);
       return () => window.removeEventListener('rcb-toggle-chat-window', handleToggle);
     }
-  }, [embedded, onOpenChange]);
+  }, [config.ui.display.embedded, config.ui.state.onOpenChange]);
 
   // Handle tooltip shown tracking
   useEffect(() => {
@@ -145,7 +134,7 @@ const QABot = React.forwardRef((props, ref) => {
 
   return (
     <div
-      className={`qa-bot ${embedded ? "embedded-qa-bot" : ""}`}
+      className={`qa-bot ${config.ui.display.embedded ? "embedded-qa-bot" : ""}`}
       ref={containerRef}
       role="region"
       aria-label="Q&A Bot"
@@ -154,8 +143,8 @@ const QABot = React.forwardRef((props, ref) => {
         <main role="main" aria-label="Chat interface">
           <BotController
             ref={ref}
-            embedded={embedded}
-            currentOpen={open}
+            embedded={config.ui.display.embedded}
+            currentOpen={config.ui.state.open}
           />
           <ChatBot
             key={`chatbot-${sessionId}`}

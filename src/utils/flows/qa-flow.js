@@ -22,12 +22,46 @@ export const createQAFlow = ({
   // Track query ID for feedback
   let feedbackQueryId = null;
 
-  // Validate required endpoint
+  // Handle demo mode when no endpoint is configured
   if (!endpoint) {
     return {
-      qa_error: {
-        message: "Q&A endpoint not configured. Please provide an endpoint in the configuration.",
-        path: "start"
+      qa_loop: {
+        message: async (chatState) => {
+          const { userInput } = chatState;
+
+          // Handle feedback in demo mode
+          if (userInput === "👍 Helpful" || userInput === "👎 Not helpful") {
+            return "Thanks for the feedback! This is demo mode - no real endpoint configured.";
+          }
+
+          // Demo response
+          const demoResponses = [
+            "This is a demo response. To use the bot with real data, configure a Q&A endpoint.",
+            "Demo mode is active. Your question was: '" + userInput + "'",
+            "In demo mode, I can only provide sample responses. Please configure an endpoint for real functionality."
+          ];
+
+          const randomResponse = demoResponses[Math.floor(Math.random() * demoResponses.length)];
+
+          // Process text (handles markdown, links, etc.)
+          const processedText = getProcessedText(randomResponse);
+
+          // Inject the response
+          await chatState.injectMessage(processedText);
+
+          // Add guidance message
+          setTimeout(async () => {
+            await chatState.injectMessage("Ask another question or configure an endpoint for real functionality.");
+          }, 100);
+
+          return null;
+        },
+
+        // Show rating options in demo mode
+        options: ["👍 Helpful", "👎 Not helpful"],
+        renderMarkdown: ["BOT"],
+        chatDisabled: false,
+        path: "qa_loop"
       }
     };
   }

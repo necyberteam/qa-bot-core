@@ -48,7 +48,6 @@ const ProgrammaticQABot = React.forwardRef((props, ref) => {
       open={props.embedded ? true : chatOpen}
       onOpenChange={props.embedded ? undefined : setChatOpen}
       loginUrl={props.loginUrl}
-      ringEffect={props.ringEffect}
       welcome={props.welcome}
       userEmail={props.userEmail}
       userName={props.userName}
@@ -77,7 +76,6 @@ export function qaBot(config) {
         embedded={config.embedded}
         enabled={config.enabled}
         loginUrl={config.loginUrl}
-        ringEffect={config.ringEffect}
         welcome={config.welcome}
         userEmail={config.userEmail}
         userName={config.userName}

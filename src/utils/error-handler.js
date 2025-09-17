@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG } from '../config/constants';
+import { defaultConfig } from '../config/schema';
 
 /**
  * Handles bot errors and returns user-friendly error messages
@@ -8,16 +8,6 @@ import { DEFAULT_CONFIG } from '../config/constants';
 export const handleBotError = (error) => {
   console.error('Bot error:', error);
 
-  // If it's an error object with a message property
-  if (error && error.error) {
-    return DEFAULT_CONFIG.ERRORS.API_UNAVAILABLE;
-  }
-
-  // If it's a standard Error object
-  if (error instanceof Error) {
-    return DEFAULT_CONFIG.ERRORS.API_UNAVAILABLE;
-  }
-
-  // Default fallback
-  return DEFAULT_CONFIG.ERRORS.API_UNAVAILABLE;
+  // Return the configured error message for all error types
+  return defaultConfig.content.messages.error;
 };

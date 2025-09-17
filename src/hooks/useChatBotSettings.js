@@ -1,21 +1,20 @@
 import React, { useMemo } from 'react';
-import { DEFAULT_CONFIG } from '../config/constants';
 import NewChatButton from '../components/NewChatButton';
 import { Button } from "react-chatbotify";
+import { defaultConfig } from '../config/schema';
 
 /**
  * Custom hook to generate ChatBot settings
  * @param {Object} params - Parameters for generating settings
  * @param {Object} params.themeColors - Theme colors from useThemeColors
  * @param {boolean} params.embedded - Whether the bot is embedded
- * @param {boolean} params.defaultOpen - Default open state (for uncontrolled components only)
+ * @param {boolean} params.enabled - Whether the bot is enabled
  * @param {string} params.loginUrl - URL to navigate to for login
  * @returns {Object} ChatBot settings object
  */
 const useChatBotSettings = ({
   themeColors,
   embedded,
-  defaultOpen,
   enabled,
   loginUrl
 }) => {
@@ -35,17 +34,17 @@ const useChatBotSettings = ({
       header: {
         title: (
           <div key="header-title">
-            <h1 className="sr-only">{DEFAULT_CONFIG.BRANDING.TITLE}</h1>
-            <span aria-hidden="true">{DEFAULT_CONFIG.BRANDING.TITLE}</span>
+            <h1 className="sr-only">{defaultConfig.content.branding.title}</h1>
+            <span aria-hidden="true">{defaultConfig.content.branding.title}</span>
           </div>
         ),
-        avatar: DEFAULT_CONFIG.BRANDING.AVATAR_URL,
+        avatar: defaultConfig.content.branding.avatarUrl,
         buttons: [
           Button.CLOSE_CHAT_BUTTON
         ]
       },
       chatWindow: {
-        defaultOpen: embedded ? true : defaultOpen || false,
+        defaultOpen: embedded ? true : false,
       },
       device: {
         desktopEnabled: true,
@@ -53,12 +52,12 @@ const useChatBotSettings = ({
         applyMobileOptimizations: false
       },
       chatInput: {
-        enabledPlaceholderText: 'Type your question here...',
+        enabledPlaceholderText: defaultConfig.content.messages.placeholder,
         disabledPlaceholderText: '',
         disabled: false,
         allowNewline: true,
         sendButtonStyle: { display: 'flex' },
-        characterLimit: 1000,
+        characterLimit: defaultConfig.behavior.chat.characterLimit,
         sendButtonAriaLabel: 'Send message',
         showCharacterCount: false,
         // Enhanced accessibility
@@ -70,7 +69,7 @@ const useChatBotSettings = ({
       },
       botBubble: {
         simulateStream: true,
-        streamSpeed: 10,
+        streamSpeed: defaultConfig.behavior.chat.streamSpeed,
         allowNewline: true,
         dangerouslySetInnerHTML: true,
         renderHtml: true,
@@ -79,7 +78,7 @@ const useChatBotSettings = ({
         role: 'log'
       },
       chatButton: {
-        icon: DEFAULT_CONFIG.BRANDING.AVATAR_URL,
+        icon: defaultConfig.content.branding.avatarUrl,
       },
       audio: {
         disabled: true,
@@ -103,7 +102,7 @@ const useChatBotSettings = ({
         rcbToggleChatWindow: true // Enable chat window toggle event
       }
     };
-  }, [themeColors, embedded, defaultOpen, isBotLoggedIn, loginUrl]);
+  }, [themeColors, embedded, enabled, loginUrl]);
 
   return settings;
 };
