@@ -12,6 +12,20 @@ function ExampleApp() {
   const [messageToSend, setMessageToSend] = useState('Hello from the Chatbot');
   const botRef = useRef();
 
+  // Read from environment variables
+  const apiKey = process.env.REACT_APP_API_KEY || null;
+  const qaEndpoint = process.env.REACT_APP_QA_ENDPOINT || null;
+  const ratingEndpoint = process.env.REACT_APP_RATING_ENDPOINT || null;
+
+  // Build endpoints object
+  const endpoints = {};
+  if (qaEndpoint) {
+    endpoints.qa = qaEndpoint;
+  }
+  if (ratingEndpoint) {
+    endpoints.rating = ratingEndpoint;
+  }
+
   const handleSendMessage = () => {
     if (botRef.current && messageToSend.trim()) {
       botRef.current.addMessage(messageToSend);
@@ -29,6 +43,41 @@ function ExampleApp() {
         </div>
 
         <div className="demo-main">
+          <div className="demo-config-section">
+            <h2>Configuration Status</h2>
+            <div className="demo-config-grid">
+              <div className="config-item">
+                <div className="config-prop">API Key</div>
+                <div className="config-value">
+                  {apiKey ? '✓ Configured' : '✗ Not set'}
+                </div>
+                <div className="config-desc">REACT_APP_API_KEY</div>
+              </div>
+
+              <div className="config-item">
+                <div className="config-prop">Q&A Endpoint</div>
+                <div className="config-value">
+                  {qaEndpoint ? '✓ Configured' : '✗ Not set'}
+                </div>
+                <div className="config-desc">
+                  REACT_APP_QA_ENDPOINT
+                  {qaEndpoint && <div style={{fontSize: '0.8em', marginTop: '4px', wordBreak: 'break-all'}}>{qaEndpoint}</div>}
+                </div>
+              </div>
+
+              <div className="config-item">
+                <div className="config-prop">Rating Endpoint</div>
+                <div className="config-value">
+                  {ratingEndpoint ? '✓ Configured' : '✗ Not set'}
+                </div>
+                <div className="config-desc">
+                  REACT_APP_RATING_ENDPOINT (optional)
+                  {ratingEndpoint && <div style={{fontSize: '0.8em', marginTop: '4px', wordBreak: 'break-all'}}>{ratingEndpoint}</div>}
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="demo-controls-section">
             <h2>Dynamic Props</h2>
             <div className="demo-controls">
@@ -130,8 +179,9 @@ function ExampleApp() {
         open={chatOpen}
         onOpenChange={setChatOpen}
         loginUrl="/login"
-        apiKey={process.env.REACT_APP_API_KEY || null}
-        welcome="What can I help you with?"
+        apiKey={apiKey}
+        endpoints={Object.keys(endpoints).length > 0 ? endpoints : undefined}
+        welcomeMessage="What can I help you with?"
         userEmail={email || undefined}
         userName={name || undefined}
       />
