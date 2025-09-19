@@ -1,9 +1,7 @@
 /**
  * Processes text to convert bare URLs into markdown hyperlinks while preserving existing links
- * @param {string} text - The raw text from the API response
- * @returns {string} - Processed text with bare URLs converted to markdown links
  */
-export const getProcessedText = (text) => {
+export const getProcessedText = (text: string): string => {
   if (!text || typeof text !== 'string') {
     return text;
   }

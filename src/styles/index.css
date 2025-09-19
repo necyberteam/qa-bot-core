@@ -95,7 +95,7 @@
   max-width: 100%;
 }
 
-
+/* unused "ringing phone" effect for the tooltip */
 @keyframes phone-ring {
   0% {
     transform: translateX(0) translateY(0) rotate(0deg);

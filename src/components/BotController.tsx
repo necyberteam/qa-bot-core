@@ -1,28 +1,29 @@
-import React, { useImperativeHandle, useEffect, useRef } from 'react';
+import React, { useImperativeHandle, useEffect, useRef, forwardRef } from 'react';
 import { useMessages, useChatWindow } from "react-chatbotify";
+import type { BotControllerHandle } from '../config';
+
+interface BotControllerProps {
+  /** Whether the bot is embedded (affects chat window controls) */
+  embedded: boolean;
+  /** Current open state */
+  currentOpen?: boolean;
+}
 
 /**
  * BotController Component
  *
  * Handles the integration between react-chatbotify hooks and the imperative API.
  * This component must be rendered inside ChatBotProvider to access the hooks.
- *
- * @param {Object} props - Component props
- * @param {boolean} props.embedded - Whether the bot is embedded (affects chat window controls)
- * @param {boolean} props.isBotLoggedIn - Current login state
- * @param {boolean} props.currentOpen - Current open state
- * @param {React.Ref} ref - The forwarded ref for the imperative API
  */
-const BotController = React.forwardRef(({
+const BotController = forwardRef<BotControllerHandle, BotControllerProps>(({
   embedded,
-  isBotLoggedIn,
   currentOpen
 }, ref) => {
   // Get the chatbot hooks (must be inside ChatBotProvider)
   const messages = useMessages();
   const chatWindow = useChatWindow();
 
-  const lastOpenRef = useRef(null); // Start with null to detect initial state
+  const lastOpenRef = useRef<boolean | null>(null); // Start with null to detect initial state
   const fromEventRef = useRef(false);
 
   // Sync open state with chat window when it changes (but not when change came from event)
@@ -49,25 +50,40 @@ const BotController = React.forwardRef(({
       fromEventRef.current = true;
     };
 
-    // Store the function on the ref so QABot can call it
-    if (ref) {
-      if (!ref.current) {
-        ref.current = {};
-      }
-      ref.current._markAsUserInteraction = markAsUserInteraction;
-    }
+    // Listen for user interactions with the chat window
+    window.addEventListener('rcb-toggle-chat-window', markAsUserInteraction);
+    return () => window.removeEventListener('rcb-toggle-chat-window', markAsUserInteraction);
   });
 
   // An imperative method to add a message to bot
   // wrapping react-chatbotify `insertMessage`
   useImperativeHandle(ref, () => ({
     // Add a message to the chat
-    addMessage: (message) => {
+    addMessage: (message: string) => {
       if (messages && messages.injectMessage) {
         messages.injectMessage(message);
       }
+    },
+    openChat: () => {
+      if (!embedded && chatWindow && chatWindow.toggleChatWindow) {
+        chatWindow.toggleChatWindow(true);
+      }
+    },
+    closeChat: () => {
+      if (!embedded && chatWindow && chatWindow.toggleChatWindow) {
+        chatWindow.toggleChatWindow(false);
+      }
+    },
+    toggleChat: () => {
+      if (!embedded && chatWindow && chatWindow.toggleChatWindow) {
+        chatWindow.toggleChatWindow();
+      }
+    },
+    setBotEnabled: (enabled: boolean) => {
+      // This could be extended to handle bot state if needed
+      console.log('Bot enabled state:', enabled);
     }
-  }), [messages]);
+  }), [messages, chatWindow, embedded]);
   return null;
 });
 

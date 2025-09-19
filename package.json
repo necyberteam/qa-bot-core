@@ -12,11 +12,10 @@
     "./standalone": "./dist/qa-bot-core.standalone.js"
   },
   "unpkg": "./dist/qa-bot-core.standalone.js",
-  "types": "index.d.ts",
+  "types": "./dist/types/index.d.ts",
   "files": [
     "dist",
-    "build",
-    "index.d.ts"
+    "build"
   ],
   "dependencies": {
     "@rcb-plugins/html-renderer": "^0.3.1",
@@ -40,7 +39,11 @@
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-replace": "^5.0.7",
     "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^11.1.6",
     "@testing-library/react": "^13.4.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/uuid": "^9.0.0",
     "customize-cra": "^1.0.0",
     "react": "^18.3.1",
     "react-app-rewired": "^2.2.1",
@@ -49,6 +52,8 @@
     "rollup": "^4.9.6",
     "rollup-plugin-peer-deps-external": "^2.2.4",
     "rollup-plugin-postcss": "^4.0.2",
+    "tslib": "^2.6.0",
+    "typescript": "^5.3.0",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

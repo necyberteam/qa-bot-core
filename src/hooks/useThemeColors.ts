@@ -1,16 +1,22 @@
-import { useMemo } from 'react';
-import { DEFAULT_CONFIG } from '../config/constants';
+import { useMemo, RefObject } from 'react';
+import type { ThemeColors } from '../config';
+
+interface ThemeConfig {
+  primaryColor?: string;
+  secondaryColor?: string;
+  fontFamily?: string;
+}
 
 /**
  * Custom hook to get theme colors from CSS variables
- * @param {React.RefObject} containerRef - Reference to the container element
- * @param {Object} defaultColors - Default color values if CSS variables are not found
- * @returns {Object} Theme colors object
  */
-const useThemeColors = (containerRef, defaultColors = {}) => {
+const useThemeColors = (
+  containerRef: RefObject<HTMLDivElement>, 
+  themeConfig: ThemeConfig = {}
+): ThemeColors => {
   const themeColors = useMemo(() => {
     // Get colors from CSS variables if available, fall back to defaults
-    const getCSSVariable = (name, fallback) => {
+    const getCSSVariable = (name: string, fallback?: string): string | undefined => {
       if (containerRef.current) {
         // First check the container itself
         const containerStyle = getComputedStyle(containerRef.current);
@@ -32,11 +38,11 @@ const useThemeColors = (containerRef, defaultColors = {}) => {
     };
 
     return {
-      primaryColor: getCSSVariable('--primary-color', defaultColors.primaryColor || DEFAULT_CONFIG.THEME.PRIMARY_COLOR),
-      secondaryColor: getCSSVariable('--secondary-color', defaultColors.secondaryColor || DEFAULT_CONFIG.THEME.SECONDARY_COLOR),
-      fontFamily: getCSSVariable('--font-family', defaultColors.fontFamily || DEFAULT_CONFIG.THEME.FONT_FAMILY)
+      primaryColor: getCSSVariable('--primary-color', themeConfig.primaryColor),
+      secondaryColor: getCSSVariable('--secondary-color', themeConfig.secondaryColor),
+      fontFamily: getCSSVariable('--font-family', themeConfig.fontFamily)
     };
-  }, [containerRef, defaultColors]);
+  }, [containerRef, themeConfig]);
 
   return themeColors;
 };

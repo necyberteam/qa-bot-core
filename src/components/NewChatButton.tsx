@@ -2,7 +2,7 @@ import React from 'react';
 import { useFlow } from 'react-chatbotify';
 import RefreshIcon from './icons/RefreshIcon';
 
-const NewChatButton = () => {
+const NewChatButton: React.FC = () => {
   const { restartFlow } = useFlow();
 
   const handleNewChat = () => {
@@ -29,11 +29,11 @@ const NewChatButton = () => {
         gap: '6px',
         fontWeight: '500',
       }}
-      onMouseEnter={(e) => {
-        e.target.style.backgroundColor = '#0d5f6b';
+      onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
+        (e.target as HTMLButtonElement).style.backgroundColor = '#0d5f6b';
       }}
-      onMouseLeave={(e) => {
-        e.target.style.backgroundColor = '#107180';
+      onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
+        (e.target as HTMLButtonElement).style.backgroundColor = '#107180';
       }}
     >
       <RefreshIcon width={16} height={16} />

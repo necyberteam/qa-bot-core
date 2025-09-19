@@ -4,10 +4,8 @@
 
 /**
  * Validates email format using a comprehensive regex pattern
- * @param {string} email - The email address to validate
- * @returns {boolean} - True if email is valid, false otherwise
  */
-export const isValidEmail = (email) => {
+export const isValidEmail = (email: string): boolean => {
   if (!email || typeof email !== 'string') {
     return false;
   }
@@ -18,12 +16,18 @@ export const isValidEmail = (email) => {
   return emailRegex.test(email.trim());
 };
 
+interface ValidationResult {
+  success: boolean;
+  promptContent?: string;
+  promptDuration?: number;
+  promptType?: string;
+  highlightTextArea?: boolean;
+}
+
 /**
  * Creates email validation for chat bot flows
- * @param {string} email - The email to validate
- * @returns {Object} - Validation result with success boolean and message string
  */
-export const validateEmail = (email) => {
+export const validateEmail = (email: string): ValidationResult => {
   const trimmedEmail = email?.trim() || '';
 
   if (!trimmedEmail) {
