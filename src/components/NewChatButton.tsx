@@ -16,7 +16,7 @@ const NewChatButton: React.FC = () => {
       tabIndex={0}
       aria-label="New chat conversation"
       style={{
-        backgroundColor: '#107180',
+        backgroundColor: 'var(--primaryColor, #107180)',
         border: 'none',
         color: '#ffffff',
         fontSize: '14px',
@@ -30,10 +30,10 @@ const NewChatButton: React.FC = () => {
         fontWeight: '500',
       }}
       onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
-        (e.target as HTMLButtonElement).style.backgroundColor = '#0d5f6b';
+        (e.target as HTMLButtonElement).style.backgroundColor = 'var(--secondaryColor, #0d5f6b)';
       }}
       onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
-        (e.target as HTMLButtonElement).style.backgroundColor = '#107180';
+        (e.target as HTMLButtonElement).style.backgroundColor = 'var(--primaryColor, #107180)';
       }}
     >
       <RefreshIcon width={16} height={16} />

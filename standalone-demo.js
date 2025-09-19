@@ -7,12 +7,31 @@ window.addEventListener('load', function() {
     if (typeof qaBotCore !== 'undefined') {
         botController = qaBotCore({
             target: document.getElementById('qa-bot-container'),
+            // Simple props only - demonstrating the simplified architecture
+            apiKey: 'demo-api-key',
+            endpoints: {
+                qa: 'https://api.example.com/chat'
+            },
+            userEmail: 'demo@example.com',
+            userName: 'Demo User',
+            welcomeMessage: "Hello! How can I help you today?",
+            branding: {
+                primaryColor: '#007bff',
+                secondaryColor: '#0056b3',
+                primaryFont: 'Arial, sans-serif',
+                botName: 'Demo Assistant',
+                logo: '/chat-icon.svg'
+            },
+            messages: {
+                welcome: "Hi there! Ask me anything.",
+                placeholder: "Type your message here...",
+                error: "Sorry, something went wrong",
+                disabled: "Chat is currently disabled"
+            },
             embedded: false,  // Floating bot
             enabled: true,
             defaultOpen: false,
-            welcome: "Hello! How can I help you today?",
-            apiKey: 'demo-key',
-            loginUrl: '/login'  // Optional login URL for demo
+            loginUrl: '/login'
         });
 
         console.log('QA Bot initialized successfully');
@@ -42,7 +61,7 @@ function toggleChat() {
 
 function sendTestMessage() {
     if (botController) {
-        botController.addMessage('Hello from the demo!');
+        botController.addMessage('Hello! This is a test message from the demo.');
     }
 }
 

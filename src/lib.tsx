@@ -44,6 +44,8 @@ interface QABotConfig {
   welcomeMessage?: string;
   userEmail?: string;
   userName?: string;
+  branding?: any;
+  messages?: any;
   [key: string]: any; // Allow other react-chatbotify props
 }
 
@@ -66,6 +68,8 @@ interface ProgrammaticQABotProps {
   welcomeMessage?: string;
   userEmail?: string;
   userName?: string;
+  branding?: any;
+  messages?: any;
 }
 
 /**
@@ -77,6 +81,7 @@ interface ProgrammaticQABotProps {
 // React wrapper component for programmatic API
 const ProgrammaticQABot = React.forwardRef<BotControllerHandle, ProgrammaticQABotProps>(
   (props, ref) => {
+    const [isOpen, setIsOpen] = React.useState(props.defaultOpen || false);
     const qaRef = React.useRef<BotControllerHandle>(null);
 
     // Expose controller methods via ref
@@ -85,20 +90,19 @@ const ProgrammaticQABot = React.forwardRef<BotControllerHandle, ProgrammaticQABo
         qaRef.current?.addMessage(message);
       },
       setBotEnabled: (status: boolean) => {
-        // In simplified version, embedded mode is handled by wrapper developers
-        console.log('setBotEnabled called with:', status);
+        qaRef.current?.setBotEnabled(status);
       },
       openChat: () => {
-        // In simplified version, chat state is handled by wrapper developers
-        console.log('openChat called');
+        setIsOpen(true);
+        qaRef.current?.openChat();
       },
       closeChat: () => {
-        // In simplified version, chat state is handled by wrapper developers
-        console.log('closeChat called');
+        setIsOpen(false);
+        qaRef.current?.closeChat();
       },
       toggleChat: () => {
-        // In simplified version, chat state is handled by wrapper developers
-        console.log('toggleChat called');
+        setIsOpen(prev => !prev);
+        qaRef.current?.toggleChat();
       }
     }), []);
 
@@ -111,6 +115,8 @@ const ProgrammaticQABot = React.forwardRef<BotControllerHandle, ProgrammaticQABo
         userName={props.userName}
         loginUrl={props.loginUrl}
         welcomeMessage={props.welcomeMessage}
+        branding={props.branding}
+        messages={props.messages}
       />
     );
   }
@@ -146,6 +152,8 @@ export function qaBot(config: QABotConfig): QABotInstance | undefined {
         welcomeMessage={config.welcomeMessage}
         userEmail={config.userEmail}
         userName={config.userName}
+        branding={config.branding}
+        messages={config.messages}
       />
     </React.StrictMode>
   );
