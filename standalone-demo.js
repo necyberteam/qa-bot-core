@@ -16,11 +16,11 @@ window.addEventListener('load', function() {
             userName: 'Demo User',
             welcomeMessage: "Hello! How can I help you today?",
             branding: {
-                primaryColor: '#007bff',
-                secondaryColor: '#0056b3',
+                primaryColor: '#24292e',     // GitHub dark gray
+                secondaryColor: '#586069',   // GitHub medium gray
                 primaryFont: 'Arial, sans-serif',
                 botName: 'Demo Assistant',
-                logo: '/chat-icon.svg'
+                logo: 'https://github.com/github.png'
             },
             messages: {
                 welcome: "Hi there! Ask me anything.",

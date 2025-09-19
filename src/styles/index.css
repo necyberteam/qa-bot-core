@@ -6,12 +6,6 @@
  */
 
 /* General React Chatbotify (rcb) styles */
-.rcb-toggle-icon {
-  background-size: 62% !important;
-  background-position: calc(50% - 1px) calc(50% + 2px);
-  background-repeat: no-repeat;
-  background-color: transparent !important;
-}
 
 .rcb-chat-window {
   width: 550px !important;
@@ -20,12 +14,6 @@
   max-height: 80vh !important;
 }
 
-.rcb-chat-window .rcb-bot-avatar {
-  background-size: contain;
-  border-radius: 0;
-  background-position: center;
-  background-repeat: no-repeat;
-}
 
 .rcb-chat-window .rcb-chat-header {
   display: flex;
