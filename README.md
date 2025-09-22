@@ -1,8 +1,8 @@
-# QA Bot Core
+# QA Bot Core (Custom Flows Support)
 
-A simple React chatbot component for Q&A applications with built-in rating system.
+A configurable React chatbot component for Q&A applications with built-in rating system and support for custom conversation flows.
 
-**Pre-configured wrapper around react-chatbotify** - Just provide your API endpoints and you're done.
+**Pre-configured wrapper around react-chatbotify** with advanced customization options - supports custom flows, deep configuration, and complex business logic.
 
 ## Installation
 
