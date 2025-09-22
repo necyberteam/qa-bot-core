@@ -133,8 +133,6 @@ function ExampleApp() {
         qaEndpoint={qaEndpoint}
         ratingEndpoint={ratingEndpoint}
         welcomeMessage="What can I help you with?"
-        primaryColor="blue"
-        secondaryColor="green"
         botName="Q&A Assistant"
         placeholder="Type your question here..."
         tooltipText="Click to chat with our Q&A assistant!"

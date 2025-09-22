@@ -25,7 +25,7 @@ export const defaultValues = {
   secondaryColor: '#107180',
   fontFamily: 'Arial, sans-serif',
   botName: 'Q&A Bot',
-  avatar: '/default-chat-icon.svg',
+  avatar: '/chat-icon.svg',
   placeholder: 'Type your question here...',
   errorMessage: 'Chat is currently unavailable',
   embedded: false,
