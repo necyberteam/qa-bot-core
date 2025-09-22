@@ -12,10 +12,10 @@ npm install @snf/qa-bot-core
 
 ## Usage
 
-### React Component - Three Levels of Complexity
+### React Component
 
-#### Level 1: Simple Usage
-Just provide apiKey and endpoints:
+#### Basic Usage
+Just provide required props:
 
 ```jsx
 import QABot from '@snf/qa-bot-core';
@@ -24,66 +24,41 @@ function App() {
   return (
     <QABot
       apiKey="your-api-key"
-      endpoints={{ qa: 'https://your-api.com/chat' }}
+      qaEndpoint="https://your-api.com/chat"
+      welcomeMessage="Hello! How can I help you today?"
     />
   );
 }
 ```
 
-#### Level 2: Complex Usage
-Add settings, customizations, and branding:
+#### Full Configuration
+Customize appearance and behavior:
 
 ```jsx
 <QABot
   apiKey="your-api-key"
-  endpoints={{
-    qa: 'https://your-api.com/chat',
-    rating: 'https://your-api.com/rating'
-  }}
+  qaEndpoint="https://your-api.com/chat"
+  ratingEndpoint="https://your-api.com/rating"
   welcomeMessage="Hello! How can I help you today?"
-  branding={{
-    primaryColor: '#24292e',
-    secondaryColor: '#586069',
-    botName: 'Demo Assistant',
-    logo: 'https://github.com/github.png'
-  }}
-  messages={{
-    welcome: "Hi there! Ask me anything.",
-    placeholder: "Type your message here...",
-    error: "Sorry, something went wrong"
-  }}
-  customFlows={myCustomFlows}
-  settings={{
-    general: { primaryColor: '#brand-color' },
-    header: { title: 'Support Bot' }
-  }}
+
+  // Branding
+  primaryColor="#24292e"
+  secondaryColor="#586069"
+  botName="Demo Assistant"
+  logo="https://github.com/github.png"
+
+  // Messages
+  placeholder="Type your message here..."
+  errorMessage="Sorry, something went wrong"
+  tooltipText="Ask me anything!"
+
+  // Layout
+  embedded={false}
+
+  // Footer
+  footerText="Powered by Demo Corp"
+  footerLink="https://demo.com"
 />
-```
-
-#### Level 3: Wrapper Pattern
-Create organizational bots with default configurations:
-
-```jsx
-function MyOrgBot({ settings = {}, ...props }) {
-  return (
-    <QABot
-      endpoints={{ qa: 'https://org.com/api' }}
-      settings={{
-        general: { primaryColor: '#org-blue' },
-        header: { title: 'Organization Support' },
-        ...settings
-      }}
-      branding={{
-        botName: 'Org Assistant',
-        logo: '/org-logo.png'
-      }}
-      {...props}
-    />
-  );
-}
-
-// Usage
-<MyOrgBot apiKey="user-key" />
 ```
 
 ### JavaScript API
@@ -94,17 +69,13 @@ import { qaBot } from '@snf/qa-bot-core';
 const bot = qaBot({
   target: document.getElementById('bot-container'),
   apiKey: 'your-api-key',
-  endpoints: {
-    qa: 'https://your-api.com/chat',
-    rating: 'https://your-api.com/rating'
-  },
+  qaEndpoint: 'https://your-api.com/chat',
+  ratingEndpoint: 'https://your-api.com/rating',
   welcomeMessage: "Hello! How can I help you today?",
-  branding: {
-    primaryColor: '#24292e',
-    secondaryColor: '#586069',
-    botName: 'Demo Assistant',
-    logo: 'https://github.com/github.png'
-  }
+  primaryColor: '#24292e',
+  secondaryColor: '#586069',
+  botName: 'Demo Assistant',
+  logo: 'https://github.com/github.png'
 });
 
 // Programmatic control
@@ -123,17 +94,13 @@ bot.destroy();
   window.qaBotCore({
     target: document.getElementById('bot-container'),
     apiKey: 'your-api-key',
-    endpoints: {
-      qa: 'https://your-api.com/chat',
-      rating: 'https://your-api.com/rating'
-    },
+    qaEndpoint: 'https://your-api.com/chat',
+    ratingEndpoint: 'https://your-api.com/rating',
     welcomeMessage: "Hello! How can I help you today?",
-    branding: {
-      primaryColor: '#24292e',
-      secondaryColor: '#586069',
-      botName: 'Demo Assistant',
-      logo: 'https://github.com/github.png'
-    }
+    primaryColor: '#24292e',
+    secondaryColor: '#586069',
+    botName: 'Demo Assistant',
+    logo: 'https://github.com/github.png'
   });
 </script>
 ```
@@ -142,36 +109,22 @@ bot.destroy();
 
 ### Props
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `apiKey` | string | API key for your Q&A service |
-| `endpoints` | object | `{ qa: 'url', rating: 'url' }` - rating is optional |
-| `welcomeMessage` | string | Initial greeting message |
-| `branding` | object | Theme configuration (see below) |
-| `messages` | object | Message customization (see below) |
-
-### Branding
-
-```javascript
-branding: {
-  primaryColor: '#24292e',      // Main color
-  secondaryColor: '#586069',    // Hover color
-  primaryFont: 'Arial, sans-serif',
-  botName: 'Demo Assistant',
-  logo: 'https://github.com/github.png'
-}
-```
-
-### Messages
-
-```javascript
-messages: {
-  welcome: "Hi there! Ask me anything.",
-  placeholder: "Type your message here...",
-  error: "Sorry, something went wrong",
-  disabled: "Chat is currently disabled"
-}
-```
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `apiKey` | string | ✅ | API key for your Q&A service |
+| `qaEndpoint` | string | ✅ | Q&A API endpoint URL |
+| `welcomeMessage` | string | ✅ | Initial greeting message |
+| `ratingEndpoint` | string | ❌ | Rating API endpoint URL (enables thumbs up/down) |
+| `primaryColor` | string | ❌ | Main theme color (default: `#1a5b6e`) |
+| `secondaryColor` | string | ❌ | Secondary theme color (default: `#107180`) |
+| `botName` | string | ❌ | Bot display name (default: `Q&A Bot`) |
+| `logo` | string | ❌ | Bot avatar URL (default: `/default-chat-icon.svg`) |
+| `placeholder` | string | ❌ | Input placeholder text |
+| `errorMessage` | string | ❌ | Error state message |
+| `tooltipText` | string | ❌ | Tooltip text for chat toggle |
+| `embedded` | boolean | ❌ | Embedded mode (default: `false`) |
+| `footerText` | string | ❌ | Footer text |
+| `footerLink` | string | ❌ | Footer link URL |
 
 ## API Requirements
 
@@ -223,6 +176,7 @@ npm start
 # Build library
 npm run build:lib
 ```
+
 
 ## License
 

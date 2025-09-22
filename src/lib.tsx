@@ -7,19 +7,10 @@ import './styles/index.css'; // QA Bot styles
 // Export the main component
 export { QABot };
 
-// Export flow creation utilities for wrapper repos
-export { createQAFlow } from './utils/flows/qa-flow';
-
 // Export types for usage
-export type { Flow, Plugin, Settings } from 'react-chatbotify';
 export type {
   QABotProps,
   BotControllerHandle
-} from './config';
-
-export {
-  fixedReactChatbotifySettings,
-  defaultValues
 } from './config';
 
 /**
