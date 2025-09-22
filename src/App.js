@@ -10,14 +10,15 @@ const App = React.forwardRef((props, ref) => {
     <QABot
       ref={ref}
       apiKey={props.apiKey}
-      defaultOpen={props.defaultOpen}
-      embedded={props.embedded}
-      enabled={props.enabled}
-      loginUrl={props.loginUrl}
-      onClose={props.onClose}
-      welcome={props.welcome}
-      userEmail={props.userEmail}
-      userName={props.userName}
+      qaEndpoint={props.qaEndpoint}
+      ratingEndpoint={props.ratingEndpoint}
+      welcomeMessage={props.welcomeMessage}
+      primaryColor={props.primaryColor}
+      secondaryColor={props.secondaryColor}
+      botName={props.botName}
+      logo={props.logo}
+      placeholder={props.placeholder}
+      errorMessage={props.errorMessage}
     />
   );
 });

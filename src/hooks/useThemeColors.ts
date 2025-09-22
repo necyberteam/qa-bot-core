@@ -11,7 +11,7 @@ interface ThemeConfig {
  * Custom hook to get theme colors from CSS variables
  */
 const useThemeColors = (
-  containerRef: RefObject<HTMLDivElement>, 
+  containerRef: RefObject<HTMLDivElement>,
   themeConfig: ThemeConfig = {}
 ): ThemeColors => {
   const themeColors = useMemo(() => {
@@ -38,9 +38,9 @@ const useThemeColors = (
     };
 
     return {
-      primaryColor: getCSSVariable('--primary-color', themeConfig.primaryColor),
-      secondaryColor: getCSSVariable('--secondary-color', themeConfig.secondaryColor),
-      fontFamily: getCSSVariable('--font-family', themeConfig.fontFamily)
+      primaryColor: getCSSVariable('--primaryColor', themeConfig.primaryColor),
+      secondaryColor: getCSSVariable('--secondaryColor', themeConfig.secondaryColor),
+      fontFamily: getCSSVariable('--fontFamily', themeConfig.fontFamily)
     };
   }, [containerRef, themeConfig]);
 

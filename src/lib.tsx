@@ -1,30 +1,25 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import QABot from './components/QABot';
-import type { BotControllerHandle, EndpointsConfig } from './config';
+import type { BotControllerHandle } from './config';
 import './styles/index.css'; // QA Bot styles
 
 // Export the main component
 export { QABot };
 
-// Export types for simple usage
+// Export flow creation utilities for wrapper repos
+export { createQAFlow } from './utils/flows/qa-flow';
+
+// Export types for usage
+export type { Flow, Plugin, Settings } from 'react-chatbotify';
 export type {
   QABotProps,
-  QABotBusinessProps,
-  EndpointsConfig,
-  CustomFlows,
-  FlowStep,
-  FlowParams,
-  SimpleUsageProps,
-  BotControllerHandle,
-  BrandingConfig,
-  MessagesConfig
+  BotControllerHandle
 } from './config';
 
 export {
-  CONSTANTS,
-  defaultReactChatbotifySettings,
-  defaultWelcomeMessage
+  fixedReactChatbotifySettings,
+  defaultValues
 } from './config';
 
 /**
@@ -35,18 +30,22 @@ export {
 
 interface QABotConfig {
   target: HTMLElement;
-  apiKey?: string;
-  endpoints?: EndpointsConfig;
+  apiKey: string;
+  qaEndpoint: string;
+  ratingEndpoint?: string;
   defaultOpen?: boolean;
   embedded?: boolean;
   enabled?: boolean;
-  loginUrl?: string;
-  welcomeMessage?: string;
-  userEmail?: string;
-  userName?: string;
-  branding?: any;
-  messages?: any;
-  [key: string]: any; // Allow other react-chatbotify props
+  welcomeMessage: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  botName?: string;
+  logo?: string;
+  placeholder?: string;
+  errorMessage?: string;
+  footerText?: string;
+  footerLink?: string;
+  tooltipText?: string;
 }
 
 interface QABotInstance {
@@ -59,17 +58,22 @@ interface QABotInstance {
 }
 
 interface ProgrammaticQABotProps {
-  apiKey?: string;
-  endpoints?: EndpointsConfig;
+  apiKey: string;
+  qaEndpoint: string;
+  ratingEndpoint?: string;
   defaultOpen?: boolean;
   embedded?: boolean;
   enabled?: boolean;
-  loginUrl?: string;
-  welcomeMessage?: string;
-  userEmail?: string;
-  userName?: string;
-  branding?: any;
-  messages?: any;
+  welcomeMessage: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  botName?: string;
+  logo?: string;
+  placeholder?: string;
+  errorMessage?: string;
+  footerText?: string;
+  footerLink?: string;
+  tooltipText?: string;
 }
 
 /**
@@ -110,13 +114,19 @@ const ProgrammaticQABot = React.forwardRef<BotControllerHandle, ProgrammaticQABo
       <QABot
         ref={qaRef}
         apiKey={props.apiKey}
-        endpoints={props.endpoints}
-        userEmail={props.userEmail}
-        userName={props.userName}
-        loginUrl={props.loginUrl}
+        qaEndpoint={props.qaEndpoint}
+        ratingEndpoint={props.ratingEndpoint}
         welcomeMessage={props.welcomeMessage}
-        branding={props.branding}
-        messages={props.messages}
+        primaryColor={props.primaryColor}
+        secondaryColor={props.secondaryColor}
+        botName={props.botName}
+        logo={props.logo}
+        placeholder={props.placeholder}
+        errorMessage={props.errorMessage}
+        embedded={props.embedded}
+        footerText={props.footerText}
+        footerLink={props.footerLink}
+        tooltipText={props.tooltipText}
       />
     );
   }
@@ -144,16 +154,21 @@ export function qaBot(config: QABotConfig): QABotInstance | undefined {
       <ProgrammaticQABot
         ref={(ref) => { wrapperRef.current = ref; }}
         apiKey={config.apiKey}
-        endpoints={config.endpoints}
+        qaEndpoint={config.qaEndpoint}
+        ratingEndpoint={config.ratingEndpoint}
         defaultOpen={config.defaultOpen}
         embedded={config.embedded}
         enabled={config.enabled}
-        loginUrl={config.loginUrl}
         welcomeMessage={config.welcomeMessage}
-        userEmail={config.userEmail}
-        userName={config.userName}
-        branding={config.branding}
-        messages={config.messages}
+        primaryColor={config.primaryColor}
+        secondaryColor={config.secondaryColor}
+        botName={config.botName}
+        logo={config.logo}
+        placeholder={config.placeholder}
+        errorMessage={config.errorMessage}
+        footerText={config.footerText}
+        footerLink={config.footerLink}
+        tooltipText={config.tooltipText}
       />
     </React.StrictMode>
   );

@@ -4,174 +4,117 @@ import ChatBot, { ChatBotProvider } from "react-chatbotify";
 import HtmlRenderer from "@rcb-plugins/html-renderer";
 import MarkdownRenderer from "@rcb-plugins/markdown-renderer";
 import InputValidator from "@rcb-plugins/input-validator";
-import { v4 as uuidv4 } from 'uuid';
 import BotController from './BotController';
 import useThemeColors from '../hooks/useThemeColors';
 import useChatBotSettings from '../hooks/useChatBotSettings';
 import useFocusableSendButton from '../hooks/useFocusableSendButton';
 import useKeyboardNavigation from '../hooks/useKeyboardNavigation';
-import { deepMergeAll } from '../utils/deep-merge';
-import { createBotFlow } from '../utils/create-bot-flow';
-import { defaultReactChatbotifySettings, defaultWelcomeMessage } from '../config/defaults';
-import type {
-  QABotProps,
-  BotControllerHandle,
-  ReactChatbotifySettings,
-  ThemeColors,
-  BusinessConfig
+import { createQAFlow } from '../utils/flows/qa-flow';
+import { getOrCreateSessionId } from '../utils/session-utils';
+import type { Settings, Flow } from 'react-chatbotify';
+import {
+  fixedReactChatbotifySettings,
+  defaultValues,
+  type QABotProps,
+  type BotControllerHandle,
+  type ThemeColors
 } from '../config';
-
-// Session management
-const generateSessionId = (): string => {
-  return `qa_bot_session_${uuidv4()}`;
-};
-
-const getOrCreateSessionId = (): string => {
-  // Check if we already have a session ID
-  const existingKey = Object.keys(localStorage).find(key => key.startsWith('qa_bot_session_'));
-  if (existingKey) {
-    const existingId = localStorage.getItem(existingKey);
-    return existingId || generateSessionId();
-  }
-
-  // Create new session
-  const newSessionId = generateSessionId();
-  localStorage.setItem(newSessionId, newSessionId);
-  return newSessionId;
-};
 
 /**
  * Q&A Bot Component - A pre-configured react-chatbotify wrapper with business logic
- *
- * This component provides three levels of usage complexity:
- *
- * **Level 1: Simple Usage** - Just provide apiKey and endpoints
- * ```tsx
- * <QABot
- *   apiKey="your-key"
- *   endpoints={{ qa: 'https://your-api.com/chat' }}
- * />
- * ```
- *
- * **Level 2: Complex Usage** - Add settings and customizations
- * ```tsx
- * <QABot
- *   apiKey="your-key"
- *   endpoints={{ qa: 'https://your-api.com/chat' }}
- *   customFlows={myFlows}
- *   settings={{
- *     general: { primaryColor: '#brand-color' },
- *     header: { title: 'Support Bot' }
- *   }}
- * />
- * ```
- *
- * **Level 3: Wrapper Pattern** - Create organizational bots
- * ```tsx
- * function MyOrgBot({ settings = {}, ...props }: WrapperProps) {
- *   return (
- *     <QABot
- *       endpoints={{ qa: 'https://org.com/api' }}
- *       settings={{
- *         general: { primaryColor: '#org-blue' },
- *         ...settings
- *       }}
- *       {...props}
- *     />
- *   );
- * }
- * ```
  */
 const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
   const {
-    // Business logic props
+    // Required
     apiKey,
-    endpoints = {},
-    userEmail,
-    userName,
-    loginUrl,
+    qaEndpoint,
+
+    // Optional functionality
+    ratingEndpoint,
     welcomeMessage,
-    customFlows,
 
-    // Simple configuration props
-    branding,
-    messages
+    // Optional branding
+    primaryColor,
+    secondaryColor,
+    botName,
+    logo,
+    placeholder,
+    errorMessage,
+
+    // Layout props
+    embedded,
+
+    // Footer props
+    footerText,
+    footerLink,
+    tooltipText
   } = props;
-
-  // Create our business logic configuration
-  const businessConfig: BusinessConfig = {
-    core: {
-      endpoints,
-      auth: { apiKey }
-    },
-    user: {
-      email: userEmail,
-      name: userName,
-      loginUrl
-    },
-    flows: {
-      welcomeMessage: messages?.welcome || welcomeMessage || defaultWelcomeMessage,
-      customFlows
-    }
-  };
 
   // Session management
   const sessionIdRef = useRef<string>(getOrCreateSessionId());
   const sessionId = sessionIdRef.current;
 
-  // Build settings from simple props only
-  const settings = useMemo((): ReactChatbotifySettings => {
-    // Create settings from simple props
-    const simpleSettings: ReactChatbotifySettings = {};
+  // Build settings: Fixed settings + overridable props
+  const settings = useMemo((): Settings => {
+    // Start with fixed settings (cannot be overridden)
+    const base = { ...fixedReactChatbotifySettings };
 
-    // Map branding to settings
-    if (branding) {
-      simpleSettings.general = {
-        ...simpleSettings.general,
-        primaryColor: branding.primaryColor,
-        secondaryColor: branding.secondaryColor,
-        fontFamily: branding.primaryFont
-      };
-      simpleSettings.header = {
-        ...simpleSettings.header,
-        title: branding.botName,
-        avatar: branding.logo
-      };
-    }
+    // Add overridable settings - use props if provided, otherwise defaults
+    base.general = {
+      ...base.general,
+      primaryColor: primaryColor || defaultValues.primaryColor,
+      secondaryColor: secondaryColor || defaultValues.secondaryColor,
+      fontFamily: defaultValues.fontFamily,
+      embedded: embedded !== undefined ? embedded : defaultValues.embedded
+    };
 
-    // Map messages to settings
-    if (messages) {
-      simpleSettings.chatInput = {
-        ...simpleSettings.chatInput,
-        enabledPlaceholderText: messages.placeholder,
-        disabledPlaceholderText: messages.disabled || messages.error
-      };
-    }
+    base.header = {
+      title: botName || defaultValues.botName,
+      showAvatar: true,
+      avatar: logo || defaultValues.avatar
+    };
 
-    // Merge defaults with simple props only
-    return deepMergeAll(
-      defaultReactChatbotifySettings,
-      simpleSettings
-    );
-  }, [branding, messages]);
+    base.chatInput = {
+      ...base.chatInput,
+      enabledPlaceholderText: placeholder || defaultValues.placeholder,
+      disabledPlaceholderText: errorMessage || defaultValues.errorMessage
+    };
+
+    base.tooltip = {
+      ...base.tooltip,
+      text: tooltipText || defaultValues.tooltipText
+    };
+
+    return base;
+  }, [primaryColor, secondaryColor, botName, logo, placeholder, errorMessage, embedded, tooltipText]);
 
   // Container ref for theming
   const containerRef = useRef<HTMLDivElement>(null);
   const themeColors: ThemeColors = useThemeColors(containerRef, settings.general);
 
-  // Apply theme colors as CSS variables
-  useChatBotSettings({ settings, themeColors });
+  // Apply theme colors as CSS variables and footer settings
+  useChatBotSettings({ settings, themeColors, footerText, footerLink });
 
-  // Create flow from business config
+  // Create Q&A flow directly from simple props - no intermediate layers!
   const flow = useMemo(() => {
-    return createBotFlow({
-      config: businessConfig,
-      customFlows,
+    const qaFlow = createQAFlow({
+      endpoint: qaEndpoint,
+      ratingEndpoint: ratingEndpoint,
+      apiKey: apiKey,
       sessionId
     });
-  }, [businessConfig, customFlows, sessionId]);
 
-  // Default plugins only
+    // Add simple start step that points to Q&A loop
+    return {
+      start: {
+        message: welcomeMessage,
+        path: "qa_loop"
+      },
+      ...qaFlow
+    };
+  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, sessionId]);
+
+  // default react-chatbotify plugins
   const plugins = useMemo(() => {
     return [HtmlRenderer(), MarkdownRenderer(), InputValidator()];
   }, []);
@@ -180,16 +123,6 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
   useFocusableSendButton();
   useKeyboardNavigation();
 
-
-  // Handle tooltip shown tracking
-  useEffect(() => {
-    const handleToggle = () => {
-      sessionStorage.setItem('qa_bot_tooltip_shown', 'true');
-    };
-
-    window.addEventListener('rcb-toggle-chat-window', handleToggle);
-    return () => window.removeEventListener('rcb-toggle-chat-window', handleToggle);
-  }, []);
 
   return (
     <div

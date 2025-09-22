@@ -586,3 +586,19 @@
 .embedded-qa-bot .rcb-chat-window {
   touch-action: pan-y !important;
 }
+
+/* Force react-chatbotify to use our theme colors */
+.rcb-chat-header-container {
+  background: var(--primaryColor, #1a5b6e) !important;
+  background: linear-gradient(135deg, var(--primaryColor, #1a5b6e) 0%, var(--secondaryColor, #107180) 100%) !important;
+}
+
+/* Chat button should also use our colors */
+.rcb-toggle-button {
+  background: var(--primaryColor, #1a5b6e) !important;
+}
+
+/* Send button */
+.rcb-send-button {
+  background-color: var(--primaryColor, #1a5b6e) !important;
+}

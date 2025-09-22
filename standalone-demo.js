@@ -18,12 +18,6 @@ function initializeBot() {
         return;
     }
 
-    // Build endpoints object
-    const endpoints = { qa: qaEndpoint };
-    if (ratingEndpoint) {
-        endpoints.rating = ratingEndpoint;
-    }
-
     // Destroy existing bot if present
     if (botController) {
         botController.destroy();
@@ -35,27 +29,19 @@ function initializeBot() {
             botController = qaBotCore({
                 target: document.getElementById('qa-bot-container'),
                 apiKey: apiKey,
-                endpoints: endpoints,
-                userEmail: 'demo@example.com',
-                userName: 'Demo User',
+                qaEndpoint: qaEndpoint,
+                ratingEndpoint: ratingEndpoint,
                 welcomeMessage: "Hello! How can I help you today?",
-                branding: {
-                    primaryColor: '#24292e',
-                    secondaryColor: '#586069',
-                    primaryFont: 'Arial, sans-serif',
-                    botName: 'Demo Assistant',
-                    logo: 'https://github.com/github.png'
-                },
-                messages: {
-                    welcome: "Hi there! Ask me anything.",
-                    placeholder: "Type your message here...",
-                    error: "Sorry, something went wrong",
-                    disabled: "Chat is currently disabled"
-                },
+                primaryColor: '#24292e',
+                secondaryColor: '#586069',
+                botName: 'Demo Assistant',
+                logo: 'https://github.com/github.png',
+                placeholder: "Type your message here...",
+                errorMessage: "Sorry, something went wrong",
+                tooltipText: "Need help? Click here to chat!",
                 embedded: false,
                 enabled: true,
-                defaultOpen: false,
-                loginUrl: '/login'
+                defaultOpen: false
             });
 
             updateStatus('Bot initialized successfully', 'success');

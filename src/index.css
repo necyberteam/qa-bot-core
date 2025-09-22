@@ -53,6 +53,36 @@ code {
   gap: 30px;
 }
 
+.demo-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .demo-columns {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+.demo-column {
+  background-color: #f8f8f8;
+  padding: 20px;
+  border-radius: 6px;
+  min-height: 300px;
+}
+
+.demo-column h2 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  color: #333;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 10px;
+}
+
 .demo-controls-section h2,
 .demo-config-section h2,
 .demo-code-section h2 {
@@ -213,27 +243,22 @@ code {
 }
 
 .demo-config-section {
-  background-color: #f8f8f8;
-  padding: 20px;
-  border-radius: 6px;
+  /* Styling moved to .demo-column */
 }
 
 .demo-config-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-}
-
-@media (max-width: 768px) {
-  .demo-config-grid {
-    grid-template-columns: 1fr;
-  }
+  /* No longer needed - items display directly in column */
 }
 
 .config-item {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin-bottom: 20px;
+}
+
+.config-item:last-child {
+  margin-bottom: 0;
 }
 
 .config-prop {
@@ -281,3 +306,4 @@ code {
   line-height: 1.5;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 }
+

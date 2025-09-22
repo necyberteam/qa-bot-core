@@ -3,9 +3,7 @@ import { useMessages, useChatWindow } from "react-chatbotify";
 import type { BotControllerHandle } from '../config';
 
 interface BotControllerProps {
-  /** Whether the bot is embedded (affects chat window controls) */
   embedded: boolean;
-  /** Current open state */
   currentOpen?: boolean;
 }
 
@@ -55,10 +53,9 @@ const BotController = forwardRef<BotControllerHandle, BotControllerProps>(({
     return () => window.removeEventListener('rcb-toggle-chat-window', markAsUserInteraction);
   });
 
-  // An imperative method to add a message to bot
-  // wrapping react-chatbotify `insertMessage`
+
   useImperativeHandle(ref, () => ({
-    // Add a message to the chat
+    // An imperative method to add a message to bot
     addMessage: (message: string) => {
       if (messages && messages.injectMessage) {
         messages.injectMessage(message);

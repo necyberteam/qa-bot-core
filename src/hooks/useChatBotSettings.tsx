@@ -1,17 +1,20 @@
 import React, { useEffect } from 'react';
 import NewChatButton from '../components/NewChatButton';
 import { Button } from "react-chatbotify";
-import type { ReactChatbotifySettings, ThemeColors } from '../config';
+import type { Settings } from 'react-chatbotify';
+import type { ThemeColors } from '../config';
 
 interface UseChatBotSettingsProps {
-  settings: ReactChatbotifySettings;
+  settings: Settings;
   themeColors: ThemeColors;
+  footerText?: string;
+  footerLink?: string;
 }
 
 /**
  * Custom hook to apply theme colors and accessibility enhancements
  */
-const useChatBotSettings = ({ settings, themeColors }: UseChatBotSettingsProps): void => {
+const useChatBotSettings = ({ settings, themeColors, footerText, footerLink }: UseChatBotSettingsProps): void => {
   // Apply theme colors as CSS variables
   useEffect(() => {
     if (themeColors) {
@@ -20,6 +23,14 @@ const useChatBotSettings = ({ settings, themeColors }: UseChatBotSettingsProps):
           document.documentElement.style.setProperty(`--${key}`, value);
         }
       });
+
+      // Force react-chatbotify header to use our colors
+      if (themeColors.primaryColor) {
+        document.documentElement.style.setProperty('--rcb-header-background', themeColors.primaryColor);
+      }
+      if (themeColors.secondaryColor) {
+        document.documentElement.style.setProperty('--rcb-header-background-hover', themeColors.secondaryColor);
+      }
     }
   }, [themeColors]);
 
@@ -46,23 +57,8 @@ const useChatBotSettings = ({ settings, themeColors }: UseChatBotSettingsProps):
       settings.chatWindow.defaultOpen = true;
     }
 
-    // Apply our accessibility enhancements
-    settings.chatInput = {
-      ...settings.chatInput,
-      sendButtonStyle: { display: 'flex' },
-      sendButtonAriaLabel: 'Send message',
-      ariaLabel: 'Chat input area',
-      ariaDescribedBy: 'chat-input-help'
-    };
-
-    settings.botBubble = {
-      ...settings.botBubble,
-      allowNewline: true,
-      dangerouslySetInnerHTML: true,
-      renderHtml: true,
-      ariaLabel: 'Bot response',
-      role: 'log'
-    };
+    // Note: Many accessibility properties we wanted are not supported by react-chatbotify's Settings interface
+    // Keeping this section minimal to match the actual API
 
     // Apply our fixed overrides (not configurable)
     settings.device = {
@@ -85,15 +81,22 @@ const useChatBotSettings = ({ settings, themeColors }: UseChatBotSettingsProps):
     settings.fileAttachment = { disabled: true };
     settings.notification = { disabled: true };
 
+    // Dynamic footer based on props
+    const footerTextElement = footerText
+      ? (footerLink
+          ? <a href={footerLink} target="_blank" rel="noopener noreferrer" key="footer-link">{footerText}</a>
+          : <span key="footer-text">{footerText}</span>)
+      : null;
+
     settings.footer = {
-      text: (<div key="footer-text"><a href="configure.me!">Make me dynamic!</a>.</div>),
+      text: footerTextElement,
       buttons: [<NewChatButton key="new-chat-button" />]
     };
 
     settings.event = {
       rcbToggleChatWindow: true
     };
-  }, [settings]);
+  }, [settings, footerText, footerLink]);
 };
 
 export default useChatBotSettings;
