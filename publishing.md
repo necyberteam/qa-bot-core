@@ -132,6 +132,13 @@ git push origin v0.1.1
 ```bash
 # Publish directly from main (ensure you're on main with latest changes)
 # Note: prepublishOnly script will automatically run 'npm run build:lib'
+
+# If you have 2FA enabled on npm (recommended):
+# 1. Get your 6-digit code from your authenticator app
+# 2. Run the publish command with --otp flag:
+npm publish --access public --otp=123456
+
+# If you don't have 2FA enabled:
 npm publish --access public
 ```
 
@@ -139,6 +146,8 @@ npm publish --access public
 - The `"files"` field in package.json already controls what gets published
 - `prepublishOnly` script ensures the library is built before publishing
 - Simpler workflow with single source of truth
+
+**Note**: Replace `123456` with your actual authenticator code. OTP codes expire every 30 seconds, so run the command quickly after getting the code.
 
 ## Debug Release Workflow
 
@@ -152,7 +161,7 @@ npm version 0.1.0-debug.1
 # Build the library
 npm run build:lib
 
-# Publish with debug tag
+# Publish with debug tag (add --otp=code if you have 2FA enabled)
 npm publish --tag debug --access public
 ```
 
@@ -234,6 +243,7 @@ This workflow is designed to be clear and actionable for AI assistants. Key poin
 - Clean up temporary files (like .tgz from npm pack) after testing
 - **Predictable filenames**: Our `config-overrides.js` ensures consistent chunk names (`453.chunk.js`) across builds for reliable CDN links
 - **Flexible for future needs**: Publishing from main keeps options open for release channels via npm tags if needed later
+- **2FA Authentication**: User has 2FA enabled on npm, so all publish commands need `--otp=code` flag with 6-digit authenticator code
 
 ### If Version Bump Gets Missed
 If a PR is merged without version bump (old workflow), simply:
