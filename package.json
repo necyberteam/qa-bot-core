@@ -1,7 +1,7 @@
 {
   "name": "@snf/qa-bot-core",
-  "version": "1.0.0",
-  "description": "A configurable chatbot with RAG-powered Q&A and rating system",
+  "version": "0.1.0",
+  "description": "A configurable chatbot setup for quick integration of RAG-powered Q&A and rating system",
   "main": "./dist/qa-bot-core.umd.cjs",
   "module": "./dist/qa-bot-core.js",
   "exports": {
