@@ -24,7 +24,19 @@ export interface QABotProps {
 /**
  * Default values for overridable props
  */
-export const defaultValues = {
+export const defaultValues: {
+  primaryColor: string;
+  secondaryColor: string;
+  fontFamily: string;
+  botName: string;
+  avatar: string;
+  placeholder: string;
+  errorMessage: string;
+  embedded: boolean;
+  tooltipText: string;
+  enabled: boolean;
+  loginUrl: string;
+} = {
   primaryColor: '#1a5b6e',
   secondaryColor: '#107180',
   fontFamily: 'Arial, sans-serif',

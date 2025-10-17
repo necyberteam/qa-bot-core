@@ -213,6 +213,36 @@ botRef.current.addMessage("Hello!"); // Inject a message into the chat
 botRef.current.setBotEnabled(false); // Change enabled state
 ```
 
+### Embedded Mode
+
+The bot supports two display modes:
+
+**Floating Mode (default):**
+- Shows as a toggle button in the bottom-right corner
+- Chat window can be opened/closed by clicking the button
+- Overlays on top of page content
+
+**Embedded Mode:**
+- Displays inline within your page layout
+- Always visible (no toggle button)
+- Takes full width of its container
+- Chat window cannot be closed
+
+Example of embedded mode:
+```jsx
+<div style={{ maxWidth: '800px', margin: '0 auto' }}>
+  <h1>Customer Support</h1>
+  <QABot
+    apiKey="your-api-key"
+    qaEndpoint="https://your-api.com/chat"
+    welcomeMessage="Hello! How can I help you today?"
+    embedded={true}
+  />
+</div>
+```
+
+**Note:** When `embedded={true}`, the `open` and `onOpenChange` props are ignored, and the imperative methods `openChat()`, `closeChat()`, and `toggleChat()` have no effect.
+
 ## API Requirements
 
 Your Q&A endpoint should accept POST requests:
@@ -253,13 +283,46 @@ X-API-KEY: your-api-key
 
 ## Development
 
+### Demo Application
+
+The project includes an interactive demo that showcases all features:
+
 ```bash
 # Install dependencies
 npm install
 
-# Run demo app (http://localhost:3000)
+# Run demo app
 npm start
+```
 
+The demo runs at `http://localhost:3000` and includes:
+
+**Configuration Status**
+- Shows which environment variables are configured
+- Displays API endpoints for verification
+
+**Dynamic Props**
+- Toggle `enabled` prop to simulate login/logout states
+- Toggle `open` prop to control chat window state
+- Toggle `embedded` prop to switch between floating and embedded modes
+
+**Component API**
+- Test the imperative `addMessage()` method
+- Inject custom messages into the chat
+
+**Environment Variables**
+
+Create a `.env` file in the project root:
+
+```bash
+REACT_APP_API_KEY=your-api-key
+REACT_APP_QA_ENDPOINT=https://your-api.com/chat
+REACT_APP_RATING_ENDPOINT=https://your-api.com/rating  # optional
+```
+
+### Building
+
+```bash
 # Build library
 npm run build:lib
 ```
