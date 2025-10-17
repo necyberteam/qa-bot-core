@@ -77,7 +77,6 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     const base = { ...fixedReactChatbotifySettings };
 
     // Add overridable settings - use props if provided, otherwise defaults
-
     base.general = {
       ...base.general,
       primaryColor: primaryColor || defaultValues.primaryColor,
