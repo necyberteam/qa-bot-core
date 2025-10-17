@@ -1,4 +1,4 @@
-// src/utils/flows/qa-flow.js
+// src/utils/flows/qa-flow.tsx
 import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { getProcessedText } from '../getProcessedText';
