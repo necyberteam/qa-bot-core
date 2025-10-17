@@ -41,6 +41,11 @@ Customize appearance and behavior:
   ratingEndpoint="https://your-api.com/rating"
   welcomeMessage="Hello! How can I help you today?"
 
+  // Control
+  enabled={true}
+  open={false}
+  onOpenChange={(isOpen) => console.log('Chat is now', isOpen ? 'open' : 'closed')}
+
   // Branding
   primaryColor="#24292e"
   secondaryColor="#586069"
@@ -115,6 +120,10 @@ bot.destroy();
 | `qaEndpoint` | string | ✅ | Q&A API endpoint URL |
 | `welcomeMessage` | string | ✅ | Initial greeting message |
 | `ratingEndpoint` | string | ❌ | Rating API endpoint URL (enables thumbs up/down) |
+| `enabled` | boolean | ❌ | Enable/disable chat input (default: `true`). When `false`, shows login button in header |
+| `loginUrl` | string | ❌ | Login URL to redirect to when chat is disabled (default: `/login`) |
+| `open` | boolean | ❌ | Control chat window open/closed state |
+| `onOpenChange` | function | ❌ | Callback when chat window state changes: `(open: boolean) => void` |
 | `primaryColor` | string | ❌ | Main theme color (default: `#1a5b6e`) |
 | `secondaryColor` | string | ❌ | Secondary theme color (default: `#107180`) |
 | `botName` | string | ❌ | Bot display name (default: `Q&A Bot`) |
@@ -125,6 +134,84 @@ bot.destroy();
 | `embedded` | boolean | ❌ | Embedded mode (default: `false`) |
 | `footerText` | string | ❌ | Footer text |
 | `footerLink` | string | ❌ | Footer link URL |
+
+## Features
+
+### Login State Management
+
+The bot supports login/logout states through the `enabled` prop:
+
+- **Enabled (`enabled={true}`)**: Shows user icon in header, chat input is active
+- **Disabled (`enabled={false}`)**: Shows login button in header, chat input is disabled
+
+Example:
+```jsx
+const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+<QABot
+  apiKey="your-api-key"
+  qaEndpoint="https://your-api.com/chat"
+  welcomeMessage="Hello! How can I help you today?"
+  enabled={isLoggedIn}
+  loginUrl="https://your-app.com/login"
+/>
+```
+
+When the user is not logged in (`enabled={false}`):
+- The login button appears in the chat header
+- Clicking it opens the `loginUrl` in a new tab
+- The chat input is disabled with the `errorMessage` shown as placeholder
+
+When the user is logged in (`enabled={true}`):
+- A user icon appears in the chat header
+- The chat input becomes active
+- Users can ask questions normally
+
+### Chat Window Control
+
+Control the chat window open/closed state programmatically:
+
+```jsx
+const [chatOpen, setChatOpen] = useState(false);
+
+<QABot
+  apiKey="your-api-key"
+  qaEndpoint="https://your-api.com/chat"
+  welcomeMessage="Hello! How can I help you today?"
+  open={chatOpen}
+  onOpenChange={setChatOpen}
+/>
+
+<button onClick={() => setChatOpen(true)}>Open Chat</button>
+<button onClick={() => setChatOpen(false)}>Close Chat</button>
+```
+
+The `open` prop provides two-way binding:
+- Setting `open={true}` opens the chat window
+- Setting `open={false}` closes the chat window
+- User interactions (clicking open/close buttons) trigger `onOpenChange`
+
+### Imperative API
+
+You can also control the bot imperatively using a ref:
+
+```jsx
+const botRef = useRef();
+
+<QABot
+  ref={botRef}
+  apiKey="your-api-key"
+  qaEndpoint="https://your-api.com/chat"
+  welcomeMessage="Hello! How can I help you today?"
+/>
+
+// Available methods:
+botRef.current.openChat();           // Open the chat window
+botRef.current.closeChat();          // Close the chat window
+botRef.current.toggleChat();         // Toggle chat window state
+botRef.current.addMessage("Hello!"); // Inject a message into the chat
+botRef.current.setBotEnabled(false); // Change enabled state
+```
 
 ## API Requirements
 

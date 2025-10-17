@@ -5,6 +5,8 @@ import type { BotControllerHandle } from '../config';
 interface BotControllerProps {
   embedded: boolean;
   currentOpen?: boolean;
+  enabled: boolean;
+  onSetEnabled?: (enabled: boolean) => void;
 }
 
 /**
@@ -15,7 +17,9 @@ interface BotControllerProps {
  */
 const BotController = forwardRef<BotControllerHandle, BotControllerProps>(({
   embedded,
-  currentOpen
+  currentOpen,
+  enabled,
+  onSetEnabled
 }, ref) => {
   // Get the chatbot hooks (must be inside ChatBotProvider)
   const messages = useMessages();
@@ -77,10 +81,11 @@ const BotController = forwardRef<BotControllerHandle, BotControllerProps>(({
       }
     },
     setBotEnabled: (enabled: boolean) => {
-      // This could be extended to handle bot state if needed
-      console.log('Bot enabled state:', enabled);
+      if (onSetEnabled) {
+        onSetEnabled(enabled);
+      }
     }
-  }), [messages, chatWindow, embedded]);
+  }), [messages, chatWindow, embedded, onSetEnabled]);
   return null;
 });
 

@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import NewChatButton from '../components/NewChatButton';
-import { Button } from "react-chatbotify";
 import type { Settings } from 'react-chatbotify';
 import type { ThemeColors } from '../config';
 
@@ -44,12 +43,6 @@ const useChatBotSettings = ({ settings, themeColors, footerText, footerLink }: U
           <span aria-hidden="true">{settings.header.title}</span>
         </div>
       );
-    }
-
-    // Ensure header buttons default
-    if (!settings.header?.buttons) {
-      settings.header = settings.header || {};
-      settings.header.buttons = [Button.CLOSE_CHAT_BUTTON];
     }
 
     // Apply embedded mode logic

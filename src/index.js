@@ -80,18 +80,17 @@ function ExampleApp() {
                   checked={userLoggedIn}
                   onChange={(e) => setUserLoggedIn(e.target.checked)}
                 />
-                <span>Bot is enabled</span>
-                <code className="demo-prop-name">enabled</code>
+                <span>{userLoggedIn ? 'Bot enabled (logged in)' : 'Bot disabled (not logged in)'}</span>
+                <code className="demo-prop-name">enabled={userLoggedIn ? 'true' : 'false'}</code>
               </label>
-
               <label className="demo-checkbox">
                 <input
                   type="checkbox"
                   checked={chatOpen}
                   onChange={(e) => setChatOpen(e.target.checked)}
                 />
-                <span>Chat window open</span>
-                <code className="demo-prop-name">open</code>
+                <span>{chatOpen ? 'Chat window open' : 'Chat window closed'}</span>
+                <code className="demo-prop-name">open={chatOpen ? 'true' : 'false'}</code>
               </label>
             </div>
 
@@ -136,6 +135,9 @@ function ExampleApp() {
         botName="Q&A Assistant"
         placeholder="Type your question here..."
         tooltipText="Click to chat with our Q&A assistant!"
+        enabled={userLoggedIn}
+        open={chatOpen}
+        onOpenChange={setChatOpen}
       />
     </div>
   );

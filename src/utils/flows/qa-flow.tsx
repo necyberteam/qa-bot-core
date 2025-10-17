@@ -1,6 +1,8 @@
 // src/utils/flows/qa-flow.js
+import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { getProcessedText } from '../getProcessedText';
+import LoginButton from '../../components/LoginButton';
 
 /**
  * Creates the basic Q&A conversation flow
@@ -11,16 +13,34 @@ import { getProcessedText } from '../getProcessedText';
  * @param {string} params.ratingEndpoint Rating API endpoint (optional)
  * @param {string} params.apiKey API key for authentication (optional)
  * @param {string} params.sessionId Session ID for tracking
+ * @param {boolean} params.enabled Whether the user is logged in/enabled (optional)
+ * @param {string} params.loginUrl Login URL to redirect to (optional)
  * @returns {Object} Q&A flow configuration
  */
 export const createQAFlow = ({
   endpoint,
   ratingEndpoint,
   apiKey,
-  sessionId
+  sessionId,
+  enabled = true,
+  loginUrl = '/login'
 }) => {
+  // If user is not logged in, return a login prompt flow
+  if (!enabled) {
+    return {
+      qa_loop: {
+        message: "To ask questions, you need to log in first.",
+        component: <LoginButton loginUrl={loginUrl} />,
+        chatDisabled: true,
+        path: "qa_loop"
+      }
+    };
+  }
+
   // Track query ID for feedback
   let feedbackQueryId = null;
+  // Track if we've shown a response to the user
+  let hasShownResponse = false;
 
   // Require endpoint to be configured
   if (!endpoint) {
@@ -31,6 +51,11 @@ export const createQAFlow = ({
     qa_loop: {
       message: async (chatState) => {
         const { userInput } = chatState;
+
+        // Skip processing if there's no user input (initial transition from start)
+        if (!userInput || userInput.trim() === '') {
+          return null;
+        }
 
         // Handle feedback if rating endpoint is configured
         if (userInput === "👍 Helpful" || userInput === "👎 Not helpful") {
@@ -114,9 +139,12 @@ export const createQAFlow = ({
           // Inject the response
           await chatState.injectMessage(processedText);
 
+          // Mark that we've shown a response
+          hasShownResponse = true;
+
           // Add guidance message after a short delay
           setTimeout(async () => {
-            await chatState.injectMessage("Ask another question or start a new chat.");
+            await chatState.injectMessage("Feel free to ask another question.");
           }, 100);
 
           return null;
@@ -126,15 +154,15 @@ export const createQAFlow = ({
         }
       },
 
-      // Show rating options only if rating endpoint is configured
+      // Show rating options only if rating endpoint is configured and we've shown a response
       options: (chatState) => {
         // Don't show options after feedback
         if (chatState.userInput === "👍 Helpful" || chatState.userInput === "👎 Not helpful") {
           return [];
         }
 
-        // Only show rating options if endpoint is configured
-        return ratingEndpoint ? ["👍 Helpful", "👎 Not helpful"] : [];
+        // Only show rating options if endpoint is configured AND we've shown a response
+        return (ratingEndpoint && hasShownResponse) ? ["👍 Helpful", "👎 Not helpful"] : [];
       },
 
       renderMarkdown: ["BOT"],
