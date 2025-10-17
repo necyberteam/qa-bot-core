@@ -15,6 +15,10 @@ export interface QABotProps {
   footerText?: string;
   footerLink?: string;
   tooltipText?: string;
+  enabled?: boolean;
+  loginUrl?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -29,7 +33,9 @@ export const defaultValues = {
   placeholder: 'Type your question here...',
   errorMessage: 'Chat is currently unavailable',
   embedded: false,
-  tooltipText: 'Ask me a question!'
+  tooltipText: 'Ask me a question!',
+  enabled: true,
+  loginUrl: '/login'
 };
 
 
@@ -48,7 +54,8 @@ export const fixedReactChatbotifySettings: Settings = {
     disabled: false,
     characterLimit: 1000,
     showCharacterCount: false,
-    allowNewline: true
+    allowNewline: true,
+    blockSpam: false
   },
   chatWindow: {
     defaultOpen: false,
