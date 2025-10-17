@@ -1,14 +1,17 @@
 // src/components/QABot.tsx
-import React, { useRef, useEffect, useMemo, forwardRef } from 'react';
-import ChatBot, { ChatBotProvider } from "react-chatbotify";
+import React, { useRef, useEffect, useMemo, forwardRef, useState } from 'react';
+import ChatBot, { ChatBotProvider, Button } from "react-chatbotify";
 import HtmlRenderer from "@rcb-plugins/html-renderer";
 import MarkdownRenderer from "@rcb-plugins/markdown-renderer";
 import InputValidator from "@rcb-plugins/input-validator";
 import BotController from './BotController';
+import LoginButton from './LoginButton';
+import UserIcon from './UserIcon';
 import useThemeColors from '../hooks/useThemeColors';
 import useChatBotSettings from '../hooks/useChatBotSettings';
 import useFocusableSendButton from '../hooks/useFocusableSendButton';
 import useKeyboardNavigation from '../hooks/useKeyboardNavigation';
+import useUpdateHeader from '../hooks/useUpdateHeader';
 import { createQAFlow } from '../utils/flows/qa-flow';
 import { getOrCreateSessionId } from '../utils/session-utils';
 import type { Settings, Flow } from 'react-chatbotify';
@@ -32,6 +35,9 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     // Optional functionality
     ratingEndpoint,
     welcomeMessage,
+    enabled,
+    open,
+    onOpenChange,
 
     // Optional branding
     primaryColor,
@@ -47,12 +53,23 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     // Footer props
     footerText,
     footerLink,
-    tooltipText
+    tooltipText,
+
+    // Login props
+    loginUrl
   } = props;
 
   // Session management
   const sessionIdRef = useRef<string>(getOrCreateSessionId());
   const sessionId = sessionIdRef.current;
+
+  // Track enabled state internally for reactivity
+  const [isEnabled, setIsEnabled] = useState(enabled !== undefined ? enabled : defaultValues.enabled);
+
+  // Sync enabled prop changes
+  useEffect(() => {
+    setIsEnabled(enabled !== undefined ? enabled : defaultValues.enabled);
+  }, [enabled]);
 
   // Build settings: Fixed settings + overridable props
   const settings = useMemo((): Settings => {
@@ -60,6 +77,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     const base = { ...fixedReactChatbotifySettings };
 
     // Add overridable settings - use props if provided, otherwise defaults
+
     base.general = {
       ...base.general,
       primaryColor: primaryColor || defaultValues.primaryColor,
@@ -68,14 +86,24 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       embedded: embedded !== undefined ? embedded : defaultValues.embedded
     };
 
+    // Build header buttons array conditionally
+    const loginOrUserButton = isEnabled
+      ? <UserIcon key="user-icon" />
+      : <LoginButton key="login-button" loginUrl={loginUrl || defaultValues.loginUrl} isHeaderButton={true} />;
+
     base.header = {
       title: botName || defaultValues.botName,
       showAvatar: true,
-      avatar: logo || defaultValues.avatar
+      avatar: logo || defaultValues.avatar,
+      buttons: [
+        loginOrUserButton,
+        Button.CLOSE_CHAT_BUTTON
+      ]
     };
 
     base.chatInput = {
       ...base.chatInput,
+      disabled: !isEnabled,
       enabledPlaceholderText: placeholder || defaultValues.placeholder,
       disabledPlaceholderText: errorMessage || defaultValues.errorMessage
     };
@@ -86,11 +114,14 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     };
 
     return base;
-  }, [primaryColor, secondaryColor, botName, logo, placeholder, errorMessage, embedded, tooltipText]);
+  }, [primaryColor, secondaryColor, botName, logo, placeholder, errorMessage, embedded, tooltipText, isEnabled, loginUrl]);
 
   // Container ref for theming
   const containerRef = useRef<HTMLDivElement>(null);
   const themeColors: ThemeColors = useThemeColors(containerRef, settings.general);
+
+  // Update header based on login state
+  useUpdateHeader(isEnabled, containerRef);
 
   // Apply theme colors as CSS variables and footer settings
   useChatBotSettings({ settings, themeColors, footerText, footerLink });
@@ -101,18 +132,23 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       endpoint: qaEndpoint,
       ratingEndpoint: ratingEndpoint,
       apiKey: apiKey,
-      sessionId
+      sessionId,
+      enabled: isEnabled,
+      loginUrl: loginUrl || defaultValues.loginUrl
     });
 
-    // Add simple start step that points to Q&A loop
+    // Configure start step based on enabled state
+    const startStep = {
+      message: welcomeMessage,
+      transition: { duration: 0 },
+      path: "qa_loop"
+    };
+
     return {
-      start: {
-        message: welcomeMessage,
-        path: "qa_loop"
-      },
+      start: startStep,
       ...qaFlow
     };
-  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, sessionId]);
+  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, sessionId, isEnabled, loginUrl]);
 
   // default react-chatbotify plugins
   const plugins = useMemo(() => {
@@ -123,6 +159,20 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
   useFocusableSendButton();
   useKeyboardNavigation();
 
+  // Listen for chat window toggle events
+  useEffect(() => {
+    if (!embedded && onOpenChange) {
+      const handleChatWindowToggle = (event: any) => {
+        const newOpenState = event.data.newState;
+        onOpenChange(newOpenState);
+      };
+      window.addEventListener('rcb-toggle-chat-window', handleChatWindowToggle);
+
+      return () => {
+        window.removeEventListener('rcb-toggle-chat-window', handleChatWindowToggle);
+      };
+    }
+  }, [embedded, onOpenChange]);
 
   return (
     <div
@@ -136,10 +186,12 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
           <BotController
             ref={ref}
             embedded={settings.general?.embedded || false}
-            currentOpen={false}
+            currentOpen={open || false}
+            enabled={isEnabled}
+            onSetEnabled={setIsEnabled}
           />
           <ChatBot
-            key={`chatbot-${sessionId}`}
+            key={`chatbot-${sessionId}-${isEnabled}`}
             settings={settings}
             flow={flow}
             plugins={plugins}
