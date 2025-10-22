@@ -2,16 +2,22 @@ import React, { createContext, useContext } from 'react';
 
 interface SessionContextType {
   resetSession: () => void;
+  clearResettingFlag: () => void;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
-export const SessionProvider: React.FC<{ children: React.ReactNode; resetSession: () => void }> = ({
+export const SessionProvider: React.FC<{
+  children: React.ReactNode;
+  resetSession: () => void;
+  clearResettingFlag: () => void;
+}> = ({
   children,
-  resetSession
+  resetSession,
+  clearResettingFlag
 }) => {
   return (
-    <SessionContext.Provider value={{ resetSession }}>
+    <SessionContext.Provider value={{ resetSession, clearResettingFlag }}>
       {children}
     </SessionContext.Provider>
   );

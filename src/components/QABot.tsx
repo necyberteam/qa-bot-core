@@ -79,10 +79,11 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
   const resetSession = () => {
     isResettingRef.current = true;
     sessionIdRef.current = generateSessionId();
-    // Clear the resetting flag after a short delay
-    setTimeout(() => {
-      isResettingRef.current = false;
-    }, 1000);
+  };
+
+  // Function to clear the resetting flag (called after flow restart completes)
+  const clearResettingFlag = () => {
+    isResettingRef.current = false;
   };
 
   // Track enabled state internally for reactivity
@@ -204,7 +205,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       role="region"
       aria-label={botName || defaultValues.botName}
     >
-      <SessionProvider resetSession={resetSession}>
+      <SessionProvider resetSession={resetSession} clearResettingFlag={clearResettingFlag}>
         <ChatBotProvider>
           <div>
             <BotController

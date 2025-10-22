@@ -17,7 +17,7 @@ const UserIcon: React.FC = () => (
       width: '30px',
       height: '30px',
       borderRadius: '50%',
-      backgroundColor: '#1a5b6e',
+      backgroundColor: 'var(--primaryColor, #1a5b6e)',
       marginRight: '5px',
       display: 'flex'
     }}
