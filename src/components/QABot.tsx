@@ -13,7 +13,8 @@ import useFocusableSendButton from '../hooks/useFocusableSendButton';
 import useKeyboardNavigation from '../hooks/useKeyboardNavigation';
 import useUpdateHeader from '../hooks/useUpdateHeader';
 import { createQAFlow } from '../utils/flows/qa-flow';
-import { getOrCreateSessionId } from '../utils/session-utils';
+import { generateSessionId } from '../utils/session-utils';
+import { SessionProvider } from '../contexts/SessionContext';
 import type { Settings, Flow } from 'react-chatbotify';
 import {
   fixedReactChatbotifySettings,
@@ -59,9 +60,30 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     loginUrl
   } = props;
 
-  // Session management
-  const sessionIdRef = useRef<string>(getOrCreateSessionId());
-  const sessionId = sessionIdRef.current;
+  // Instance ID - stable across component lifecycle (for unique React keys)
+  const instanceIdRef = useRef<string>(`bot_${Math.random().toString(36).substr(2, 9)}`);
+
+  // Session management - use ref so session can change without recreating flow
+  const sessionIdRef = useRef<string>(generateSessionId());
+
+  // Track when we're resetting to prevent message replay
+  const isResettingRef = useRef<boolean>(false);
+
+  // Create a stable getter object that the flow will capture
+  const sessionGetter = useRef({
+    getSessionId: () => sessionIdRef.current,
+    isResetting: () => isResettingRef.current
+  });
+
+  // Function to reset session ID (creates a new unique session)
+  const resetSession = () => {
+    isResettingRef.current = true;
+    sessionIdRef.current = generateSessionId();
+    // Clear the resetting flag after a short delay
+    setTimeout(() => {
+      isResettingRef.current = false;
+    }, 1000);
+  };
 
   // Track enabled state internally for reactivity
   const [isEnabled, setIsEnabled] = useState(enabled !== undefined ? enabled : defaultValues.enabled);
@@ -126,12 +148,14 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
   useChatBotSettings({ settings, themeColors, footerText, footerLink });
 
   // Create Q&A flow directly from simple props - no intermediate layers!
+  // Note: sessionGetter is stable, so flow won't recreate when session changes
   const flow = useMemo(() => {
     const qaFlow = createQAFlow({
       endpoint: qaEndpoint,
       ratingEndpoint: ratingEndpoint,
       apiKey: apiKey,
-      sessionId,
+      sessionId: sessionGetter.current.getSessionId,
+      isResetting: sessionGetter.current.isResetting,
       enabled: isEnabled,
       loginUrl: loginUrl || defaultValues.loginUrl
     });
@@ -147,7 +171,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       start: startStep,
       ...qaFlow
     };
-  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, sessionId, isEnabled, loginUrl]);
+  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, isEnabled, loginUrl]);
 
   // default react-chatbotify plugins
   const plugins = useMemo(() => {
@@ -178,36 +202,39 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       className={`qa-bot ${settings.general?.embedded ? "embedded-qa-bot" : ""}`}
       ref={containerRef}
       role="region"
-      aria-label="Q&A Bot"
+      aria-label={botName || defaultValues.botName}
     >
-      <ChatBotProvider>
-        <main role="main" aria-label="Chat interface">
-          <BotController
-            ref={ref}
-            embedded={settings.general?.embedded || false}
-            currentOpen={open || false}
-            enabled={isEnabled}
-            onSetEnabled={setIsEnabled}
-          />
-          <ChatBot
-            key={`chatbot-${sessionId}-${isEnabled}`}
-            settings={settings}
-            flow={flow}
-            plugins={plugins}
-          />
+      <SessionProvider resetSession={resetSession}>
+        <ChatBotProvider>
+          <div>
+            <BotController
+              ref={ref}
+              embedded={settings.general?.embedded || false}
+              currentOpen={open || false}
+              enabled={isEnabled}
+              onSetEnabled={setIsEnabled}
+            />
+            <ChatBot
+              key={`chatbot-${instanceIdRef.current}-${isEnabled}`}
+              settings={settings}
+              flow={flow}
+              plugins={plugins}
+            />
 
-          {/* Accessibility regions */}
-          <div
-            aria-live="polite"
-            aria-label="Bot response updates"
-            className="sr-only"
-            id="bot-live-region"
-          />
-          <div id="chat-input-help" className="sr-only">
-            Type your message and press Enter to send. Use arrow keys to navigate through response options.
+            {/* Accessibility regions */}
+            <div
+              role="status"
+              aria-live="polite"
+              aria-label="Bot response updates"
+              className="sr-only"
+              id="bot-live-region"
+            />
+            <div id="chat-input-help" className="sr-only">
+              Type your message and press Enter to send. Use arrow keys to navigate through response options.
+            </div>
           </div>
-        </main>
-      </ChatBotProvider>
+        </ChatBotProvider>
+      </SessionProvider>
     </div>
   );
 });

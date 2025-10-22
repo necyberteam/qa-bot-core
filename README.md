@@ -243,6 +243,27 @@ Example of embedded mode:
 
 **Note:** When `embedded={true}`, the `open` and `onOpenChange` props are ignored, and the imperative methods `openChat()`, `closeChat()`, and `toggleChat()` have no effect.
 
+### Session Management
+
+The bot automatically manages conversation sessions with unique session IDs:
+
+- Each bot instance generates a unique session ID when mounted
+- The session ID is included in API request headers (`X-Session-ID`)
+- A "New Chat" button in the footer allows users to start fresh conversations
+- Clicking "New Chat" generates a new session ID and clears the conversation history
+- This allows your backend to track conversation continuity and user journeys
+
+**Session Headers Sent to API:**
+```
+X-Session-ID: qa_bot_session_abc123
+X-Query-ID: query_xyz789
+```
+
+The session ID persists across page refreshes, but clicking "New Chat" creates a completely new session. This is useful for:
+- Starting a new topic without the bot referencing previous context
+- Resetting conversation state
+- Allowing users to have multiple distinct conversations
+
 ## API Requirements
 
 Your Q&A endpoint should accept POST requests:

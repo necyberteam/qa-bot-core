@@ -12,7 +12,8 @@ import LoginButton from '../../components/LoginButton';
  * @param {string} params.endpoint Q&A API endpoint (required)
  * @param {string} params.ratingEndpoint Rating API endpoint (optional)
  * @param {string} params.apiKey API key for authentication (optional)
- * @param {string} params.sessionId Session ID for tracking
+ * @param {Function} params.sessionId Function that returns current session ID
+ * @param {Function} params.isResetting Function that returns whether we're currently resetting
  * @param {boolean} params.enabled Whether the user is logged in/enabled (optional)
  * @param {string} params.loginUrl Login URL to redirect to (optional)
  * @returns {Object} Q&A flow configuration
@@ -21,7 +22,8 @@ export const createQAFlow = ({
   endpoint,
   ratingEndpoint,
   apiKey,
-  sessionId,
+  sessionId: getSessionId,
+  isResetting = () => false,
   enabled = true,
   loginUrl = '/login'
 }) => {
@@ -52,6 +54,11 @@ export const createQAFlow = ({
       message: async (chatState) => {
         const { userInput } = chatState;
 
+        // Skip processing if we're in reset mode
+        if (isResetting && isResetting()) {
+          return null;
+        }
+
         // Skip processing if there's no user input (initial transition from start)
         if (!userInput || userInput.trim() === '') {
           return null;
@@ -72,8 +79,9 @@ export const createQAFlow = ({
               }
 
               // Add session tracking if available
-              if (sessionId) {
-                headers['X-Session-ID'] = sessionId;
+              const currentSessionId = getSessionId();
+              if (currentSessionId) {
+                headers['X-Session-ID'] = currentSessionId;
                 headers['X-Query-ID'] = feedbackQueryId;
               }
 
@@ -81,7 +89,7 @@ export const createQAFlow = ({
                 method: 'POST',
                 headers,
                 body: JSON.stringify({
-                  sessionId,
+                  sessionId: currentSessionId,
                   queryId: feedbackQueryId,
                   rating: isPositive ? 1 : 0
                 })
@@ -107,8 +115,9 @@ export const createQAFlow = ({
           if (apiKey) {
             headers['X-API-KEY'] = apiKey;
           }
-          if (sessionId) {
-            headers['X-Session-ID'] = sessionId;
+          const currentSessionId = getSessionId();
+          if (currentSessionId) {
+            headers['X-Session-ID'] = currentSessionId;
             headers['X-Query-ID'] = queryId;
           }
 
@@ -156,6 +165,11 @@ export const createQAFlow = ({
 
       // Show rating options only if rating endpoint is configured and we've shown a response
       options: (chatState) => {
+        // Don't show options if we're resetting
+        if (isResetting && isResetting()) {
+          return [];
+        }
+
         // Don't show options after feedback
         if (chatState.userInput === "👍 Helpful" || chatState.userInput === "👎 Not helpful") {
           return [];

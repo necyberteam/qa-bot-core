@@ -1,13 +1,20 @@
 import React from 'react';
 import { useFlow } from 'react-chatbotify';
 import RefreshIcon from './icons/RefreshIcon';
+import { useSession } from '../contexts/SessionContext';
 
 const NewChatButton: React.FC = () => {
   const { restartFlow } = useFlow();
+  const { resetSession } = useSession();
 
   const handleNewChat = () => {
-    // Clear all form state to ensure a clean start
-    restartFlow();
+    // Reset session ID (sets resetting flag internally)
+    resetSession();
+    // Small delay to ensure resetting flag is set before flow processes
+    setTimeout(() => {
+      // Clear all form state to ensure a clean start
+      restartFlow();
+    }, 10);
   };
 
   return (
