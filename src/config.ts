@@ -15,12 +15,28 @@ export interface QABotProps {
   footerText?: string;
   footerLink?: string;
   tooltipText?: string;
+  enabled?: boolean;
+  loginUrl?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /**
  * Default values for overridable props
  */
-export const defaultValues = {
+export const defaultValues: {
+  primaryColor: string;
+  secondaryColor: string;
+  fontFamily: string;
+  botName: string;
+  avatar: string;
+  placeholder: string;
+  errorMessage: string;
+  embedded: boolean;
+  tooltipText: string;
+  enabled: boolean;
+  loginUrl: string;
+} = {
   primaryColor: '#1a5b6e',
   secondaryColor: '#107180',
   fontFamily: 'Arial, sans-serif',
@@ -29,7 +45,9 @@ export const defaultValues = {
   placeholder: 'Type your question here...',
   errorMessage: 'Chat is currently unavailable',
   embedded: false,
-  tooltipText: 'Ask me a question!'
+  tooltipText: 'Ask me a question!',
+  enabled: true,
+  loginUrl: '/login'
 };
 
 
@@ -48,7 +66,8 @@ export const fixedReactChatbotifySettings: Settings = {
     disabled: false,
     characterLimit: 1000,
     showCharacterCount: false,
-    allowNewline: true
+    allowNewline: true,
+    blockSpam: false
   },
   chatWindow: {
     defaultOpen: false,
