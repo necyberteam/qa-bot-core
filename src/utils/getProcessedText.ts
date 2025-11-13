@@ -6,12 +6,17 @@ export const getProcessedText = (text: string): string => {
     return text;
   }
 
-  // Regex to match URLs that are NOT already in markdown or HTML link format
-  // This looks for URLs that are not preceded by ]( or href=" or [ and not followed by ) or ]
-  const urlRegex = /(?<!\]\(|href=["']|\[)https?:\/\/[^\s[\]()]+(?![)\]])/gi;
+  // First pass: Handle URLs wrapped in square brackets like [https://example.com]
+  // Convert them to proper markdown links [url](url)
+  let processedText = text.replace(/\[(https?:\/\/[^\s]+?)\]/gi, '[$1]($1)');
+
+  // Second pass: Match bare URLs that are NOT already in markdown or HTML link format
+  // This looks for URLs that are not preceded by ]( or href=" or [
+  // and not followed by )
+  const urlRegex = /(?<!\]\(|href=["']|\[)https?:\/\/[^\s[\]()]+/gi;
 
   // Replace bare URLs with markdown links
-  const processedText = text.replace(urlRegex, (url) => {
+  processedText = processedText.replace(urlRegex, (url) => {
     // Clean up common punctuation that shouldn't be part of the URL
     let cleanUrl = url;
     let trailingPunctuation = '';
