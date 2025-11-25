@@ -57,7 +57,10 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     tooltipText,
 
     // Login props
-    loginUrl
+    loginUrl,
+
+    // Custom flow extension
+    customFlow
   } = props;
 
   // Instance ID - stable across component lifecycle (for unique React keys)
@@ -150,7 +153,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
 
   // Create Q&A flow directly from simple props - no intermediate layers!
   // Note: sessionGetter is stable, so flow won't recreate when session changes
-  const flow = useMemo(() => {
+  const flow = useMemo((): Flow => {
     const qaFlow = createQAFlow({
       endpoint: qaEndpoint,
       ratingEndpoint: ratingEndpoint,
@@ -168,11 +171,13 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       path: "qa_loop"
     };
 
+    // Merge flows: start + Q&A flow + custom flow (if provided)
     return {
       start: startStep,
-      ...qaFlow
+      ...qaFlow,
+      ...(customFlow || {})
     };
-  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, isEnabled, loginUrl]);
+  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, isEnabled, loginUrl, customFlow]);
 
   // default react-chatbotify plugins
   const plugins = useMemo(() => {

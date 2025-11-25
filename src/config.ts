@@ -1,4 +1,4 @@
-import type { Settings } from 'react-chatbotify';
+import type { Settings, Flow } from 'react-chatbotify';
 
 export interface QABotProps {
   apiKey: string;
@@ -19,6 +19,13 @@ export interface QABotProps {
   loginUrl?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+
+  /**
+   * Custom flow steps to merge with the built-in Q&A flow.
+   * Use this to add ticket creation flows, feedback flows, etc.
+   * These steps will be merged into the flow object.
+   */
+  customFlow?: Flow;
 }
 
 /**
