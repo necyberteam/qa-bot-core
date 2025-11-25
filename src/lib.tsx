@@ -7,6 +7,19 @@ import './styles/index.css'; // QA Bot styles
 // Export the main component
 export { QABot };
 
+// Export file upload components and utilities
+export { FileUploadComponent } from './components/FileUploadComponent';
+export type { FileUploadComponentProps } from './components/FileUploadComponent';
+export { useScreenshotCapture } from './hooks/useScreenshotCapture';
+export type { ScreenshotCaptureResult } from './hooks/useScreenshotCapture';
+export {
+  fileToBase64,
+  filesToBase64,
+  validateFileSize,
+  formatFileSize
+} from './utils/file-utils';
+export type { ProcessedFile } from './utils/file-utils';
+
 // Export types for usage
 export type {
   QABotProps,
