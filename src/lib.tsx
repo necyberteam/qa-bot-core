@@ -39,7 +39,8 @@ interface QABotConfig {
   ratingEndpoint?: string;
   defaultOpen?: boolean;
   embedded?: boolean;
-  enabled?: boolean;
+  isLoggedIn: boolean;
+  allowAnonAccess?: boolean;
   welcomeMessage: string;
   primaryColor?: string;
   secondaryColor?: string;
@@ -67,7 +68,8 @@ interface ProgrammaticQABotProps {
   ratingEndpoint?: string;
   defaultOpen?: boolean;
   embedded?: boolean;
-  enabled?: boolean;
+  isLoggedIn: boolean;
+  allowAnonAccess?: boolean;
   welcomeMessage: string;
   primaryColor?: string;
   secondaryColor?: string;
@@ -128,7 +130,8 @@ const ProgrammaticQABot = React.forwardRef<BotControllerHandle, ProgrammaticQABo
         placeholder={props.placeholder}
         errorMessage={props.errorMessage}
         embedded={props.embedded}
-        enabled={props.enabled}
+        isLoggedIn={props.isLoggedIn}
+        allowAnonAccess={props.allowAnonAccess}
         open={isOpen}
         onOpenChange={setIsOpen}
         footerText={props.footerText}
@@ -165,7 +168,8 @@ export function qaBot(config: QABotConfig): QABotInstance | undefined {
         ratingEndpoint={config.ratingEndpoint}
         defaultOpen={config.defaultOpen}
         embedded={config.embedded}
-        enabled={config.enabled}
+        isLoggedIn={config.isLoggedIn}
+        allowAnonAccess={config.allowAnonAccess}
         welcomeMessage={config.welcomeMessage}
         primaryColor={config.primaryColor}
         secondaryColor={config.secondaryColor}

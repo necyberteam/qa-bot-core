@@ -15,10 +15,25 @@ export interface QABotProps {
   footerText?: string;
   footerLink?: string;
   tooltipText?: string;
-  enabled?: boolean;
   loginUrl?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+
+  /**
+   * Whether the user is currently logged in.
+   * - Required: this bot expects login state to be tracked
+   * - Controls header icon (login button when false, user icon when true)
+   * - When false, Q&A is gated by default (shows login prompt)
+   */
+  isLoggedIn: boolean;
+
+  /**
+   * Allow anonymous access to Q&A even when not logged in.
+   * - Default: false (Q&A is gated when isLoggedIn is false)
+   * - Set to true to bypass login gating for Q&A
+   * - Does not affect custom flows (tickets, security, etc.)
+   */
+  allowAnonAccess?: boolean;
 
   /**
    * Custom flow steps to merge with the built-in Q&A flow.
@@ -41,7 +56,6 @@ export const defaultValues: {
   errorMessage: string;
   embedded: boolean;
   tooltipText: string;
-  enabled: boolean;
   loginUrl: string;
 } = {
   primaryColor: '#1a5b6e',
@@ -53,7 +67,6 @@ export const defaultValues: {
   errorMessage: 'Chat is currently unavailable',
   embedded: false,
   tooltipText: 'Ask me a question!',
-  enabled: true,
   loginUrl: '/login'
 };
 

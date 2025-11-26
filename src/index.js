@@ -83,8 +83,8 @@ function ExampleApp() {
                 checked={userLoggedIn}
                 onChange={(e) => setUserLoggedIn(e.target.checked)}
               />
-              <span>{userLoggedIn ? 'Bot enabled (logged in)' : 'Bot disabled (not logged in)'}</span>
-              <code className="demo-prop-name">enabled={userLoggedIn ? 'true' : 'false'}</code>
+              <span>{userLoggedIn ? 'User logged in' : 'User not logged in'}</span>
+              <code className="demo-prop-name">isLoggedIn={userLoggedIn ? 'true' : 'false'}</code>
             </label>
             <label className="demo-checkbox">
               <input
@@ -152,7 +152,7 @@ function ExampleApp() {
                 botName="Q&A Assistant"
                 placeholder="Type your question here..."
                 tooltipText="Click to chat with our Q&A assistant!"
-                enabled={userLoggedIn}
+                isLoggedIn={userLoggedIn}
                 open={chatOpen}
                 onOpenChange={setChatOpen}
                 embedded={true}
@@ -182,7 +182,7 @@ function ExampleApp() {
           botName="Q&A Assistant"
           placeholder="Type your question here..."
           tooltipText="Click to chat with our Q&A assistant!"
-          enabled={userLoggedIn}
+          isLoggedIn={userLoggedIn}
           open={chatOpen}
           onOpenChange={setChatOpen}
           embedded={false}
