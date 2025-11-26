@@ -20,6 +20,10 @@ export {
 } from './utils/file-utils';
 export type { ProcessedFile } from './utils/file-utils';
 
+// Export flow utilities
+export { applyFlowSettings } from './utils/flow-settings';
+export type { FlowSettingsOptions } from './utils/flow-settings';
+
 // Export types for usage
 export type {
   QABotProps,
