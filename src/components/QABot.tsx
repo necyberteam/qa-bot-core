@@ -7,6 +7,7 @@ import InputValidator from "@rcb-plugins/input-validator";
 import BotController from './BotController';
 import LoginButton from './LoginButton';
 import UserIcon from './UserIcon';
+import NewChatButton from './NewChatButton';
 import useThemeColors from '../hooks/useThemeColors';
 import useChatBotSettings from '../hooks/useChatBotSettings';
 import useFocusableSendButton from '../hooks/useFocusableSendButton';
@@ -138,8 +139,21 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       text: tooltipText || defaultValues.tooltipText
     };
 
+    // Configure footer with NewChatButton and optional text/link
+    // This must be in useMemo (not useEffect) to avoid flashing the default footer
+    const footerTextElement = footerText
+      ? (footerLink
+          ? <a href={footerLink} target="_blank" rel="noopener noreferrer" key="footer-link">{footerText}</a>
+          : <span key="footer-text">{footerText}</span>)
+      : null;
+
+    base.footer = {
+      text: footerTextElement,
+      buttons: [<NewChatButton key="new-chat-button" />]
+    };
+
     return base;
-  }, [primaryColor, secondaryColor, botName, logo, placeholder, errorMessage, embedded, tooltipText, isEnabled, loginUrl]);
+  }, [primaryColor, secondaryColor, botName, logo, placeholder, errorMessage, embedded, tooltipText, isEnabled, loginUrl, footerText, footerLink]);
 
   // Container ref for theming
   const containerRef = useRef<HTMLDivElement>(null);
@@ -148,8 +162,9 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
   // Update header based on login state
   useUpdateHeader(isEnabled, containerRef);
 
-  // Apply theme colors as CSS variables and footer settings
-  useChatBotSettings({ settings, themeColors, footerText, footerLink });
+  // Apply theme colors as CSS variables and other settings
+  // Note: Footer is configured in the settings useMemo above to avoid flashing
+  useChatBotSettings({ settings, themeColors });
 
   // Create Q&A flow directly from simple props - no intermediate layers!
   // Note: sessionGetter is stable, so flow won't recreate when session changes
