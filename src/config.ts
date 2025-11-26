@@ -64,7 +64,7 @@ export const defaultValues: {
   botName: 'Q&A Bot',
   avatar: '/chat-icon.svg',
   placeholder: 'Type your question here...',
-  errorMessage: 'Chat is currently unavailable',
+  errorMessage: 'Select an option to continue',
   embedded: false,
   tooltipText: 'Ask me a question!',
   loginUrl: '/login'
