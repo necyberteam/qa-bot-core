@@ -245,6 +245,9 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
             <ChatBot
               key={`chatbot-${instanceIdRef.current}-${internalIsLoggedIn}`}
               settings={settings}
+              styles={{
+                notificationBadgeStyle: { display: 'none' }
+              }}
               flow={flow}
               plugins={plugins}
             />

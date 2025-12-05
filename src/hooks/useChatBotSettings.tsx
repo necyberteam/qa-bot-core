@@ -70,7 +70,10 @@ const useChatBotSettings = ({ settings, themeColors }: UseChatBotSettingsProps):
     settings.audio = { disabled: true };
     settings.emoji = { disabled: true };
     settings.fileAttachment = { disabled: true };
-    settings.notification = { disabled: true };
+    settings.notification = {
+      disabled: true,
+      showCount: false  // Explicitly disable badge/count
+    };
 
     settings.event = {
       rcbToggleChatWindow: true
