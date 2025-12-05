@@ -100,7 +100,16 @@ export const fixedReactChatbotifySettings: Settings = {
   },
   userBubble: {
     showAvatar: false
-  }
+  },
+  // Disable notification badge on chat button
+  notification: {
+    disabled: true,
+    showCount: false
+  },
+  // Disable other optional features
+  audio: { disabled: true },
+  emoji: { disabled: true },
+  fileAttachment: { disabled: true }
 };
 
 

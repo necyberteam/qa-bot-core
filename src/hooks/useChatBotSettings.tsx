@@ -67,13 +67,9 @@ const useChatBotSettings = ({ settings, themeColors }: UseChatBotSettingsProps):
       icon: settings.header?.avatar,
     };
 
-    settings.audio = { disabled: true };
-    settings.emoji = { disabled: true };
-    settings.fileAttachment = { disabled: true };
-    settings.notification = {
-      disabled: true,
-      showCount: false  // Explicitly disable badge/count
-    };
+    // Note: audio, emoji, fileAttachment, and notification settings
+    // are now in fixedReactChatbotifySettings (config.ts) to ensure
+    // they're applied before first render
 
     settings.event = {
       rcbToggleChatWindow: true
