@@ -7,6 +7,7 @@ import InputValidator from "@rcb-plugins/input-validator";
 import BotController from './BotController';
 import LoginButton from './LoginButton';
 import UserIcon from './UserIcon';
+import NewChatButton from './NewChatButton';
 import useThemeColors from '../hooks/useThemeColors';
 import useChatBotSettings from '../hooks/useChatBotSettings';
 import useFocusableSendButton from '../hooks/useFocusableSendButton';
@@ -36,9 +37,12 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     // Optional functionality
     ratingEndpoint,
     welcomeMessage,
-    enabled,
     open,
     onOpenChange,
+
+    // Login state props (isLoggedIn is required)
+    isLoggedIn,
+    allowAnonAccess = false,
 
     // Optional branding
     primaryColor,
@@ -57,7 +61,10 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     tooltipText,
 
     // Login props
-    loginUrl
+    loginUrl,
+
+    // Custom flow extension
+    customFlow
   } = props;
 
   // Instance ID - stable across component lifecycle (for unique React keys)
@@ -86,13 +93,14 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     isResettingRef.current = false;
   };
 
-  // Track enabled state internally for reactivity
-  const [isEnabled, setIsEnabled] = useState(enabled !== undefined ? enabled : defaultValues.enabled);
+  // Track if user is logged in (for internal reactivity)
+  // Note: undefined is treated as "logged in" (open access mode)
+  const [internalIsLoggedIn, setInternalIsLoggedIn] = useState(isLoggedIn);
 
-  // Sync enabled prop changes
+  // Sync isLoggedIn prop changes
   useEffect(() => {
-    setIsEnabled(enabled !== undefined ? enabled : defaultValues.enabled);
-  }, [enabled]);
+    setInternalIsLoggedIn(isLoggedIn);
+  }, [isLoggedIn]);
 
   // Build settings: Fixed settings + overridable props
   const settings = useMemo((): Settings => {
@@ -109,9 +117,10 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     };
 
     // Build header buttons array conditionally
-    const loginOrUserButton = isEnabled
-      ? <UserIcon key="user-icon" />
-      : <LoginButton key="login-button" loginUrl={loginUrl || defaultValues.loginUrl} isHeaderButton={true} />;
+    // Show login button only if explicitly logged out (isLoggedIn === false)
+    const loginOrUserButton = internalIsLoggedIn === false
+      ? <LoginButton key="login-button" loginUrl={loginUrl || defaultValues.loginUrl} isHeaderButton={true} />
+      : <UserIcon key="user-icon" />;
 
     base.header = {
       title: botName || defaultValues.botName,
@@ -123,9 +132,10 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       ]
     };
 
+    // Input is never globally disabled - individual flow steps control this
     base.chatInput = {
       ...base.chatInput,
-      disabled: !isEnabled,
+      disabled: false,
       enabledPlaceholderText: placeholder || defaultValues.placeholder,
       disabledPlaceholderText: errorMessage || defaultValues.errorMessage
     };
@@ -135,44 +145,61 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       text: tooltipText || defaultValues.tooltipText
     };
 
+    // Configure footer with NewChatButton and optional text/link
+    // This must be in useMemo (not useEffect) to avoid flashing the default footer
+    const footerTextElement = footerText
+      ? (footerLink
+          ? <a href={footerLink} target="_blank" rel="noopener noreferrer" key="footer-link">{footerText}</a>
+          : <span key="footer-text">{footerText}</span>)
+      : null;
+
+    base.footer = {
+      text: footerTextElement,
+      buttons: [<NewChatButton key="new-chat-button" />]
+    };
+
     return base;
-  }, [primaryColor, secondaryColor, botName, logo, placeholder, errorMessage, embedded, tooltipText, isEnabled, loginUrl]);
+  }, [primaryColor, secondaryColor, botName, logo, placeholder, errorMessage, embedded, tooltipText, internalIsLoggedIn, loginUrl, footerText, footerLink]);
 
   // Container ref for theming
   const containerRef = useRef<HTMLDivElement>(null);
   const themeColors: ThemeColors = useThemeColors(containerRef, settings.general);
 
   // Update header based on login state
-  useUpdateHeader(isEnabled, containerRef);
+  useUpdateHeader(internalIsLoggedIn !== false, containerRef);
 
-  // Apply theme colors as CSS variables and footer settings
-  useChatBotSettings({ settings, themeColors, footerText, footerLink });
+  // Apply theme colors as CSS variables and other settings
+  // Note: Footer is configured in the settings useMemo above to avoid flashing
+  useChatBotSettings({ settings, themeColors });
 
   // Create Q&A flow directly from simple props - no intermediate layers!
   // Note: sessionGetter is stable, so flow won't recreate when session changes
-  const flow = useMemo(() => {
+  const flow = useMemo((): Flow => {
     const qaFlow = createQAFlow({
       endpoint: qaEndpoint,
       ratingEndpoint: ratingEndpoint,
       apiKey: apiKey,
       sessionId: sessionGetter.current.getSessionId,
       isResetting: sessionGetter.current.isResetting,
-      enabled: isEnabled,
+      isLoggedIn: internalIsLoggedIn,
+      allowAnonAccess: allowAnonAccess,
       loginUrl: loginUrl || defaultValues.loginUrl
     });
 
-    // Configure start step based on enabled state
+    // Configure start step
     const startStep = {
       message: welcomeMessage,
       transition: { duration: 0 },
       path: "qa_loop"
     };
 
+    // Merge flows: start + Q&A flow + custom flow (if provided)
     return {
       start: startStep,
-      ...qaFlow
+      ...qaFlow,
+      ...(customFlow || {})
     };
-  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, isEnabled, loginUrl]);
+  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow]);
 
   // default react-chatbotify plugins
   const plugins = useMemo(() => {
@@ -212,11 +239,11 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
               ref={ref}
               embedded={settings.general?.embedded || false}
               currentOpen={open || false}
-              enabled={isEnabled}
-              onSetEnabled={setIsEnabled}
+              enabled={internalIsLoggedIn !== false}
+              onSetEnabled={(enabled) => setInternalIsLoggedIn(enabled ? undefined : false)}
             />
             <ChatBot
-              key={`chatbot-${instanceIdRef.current}-${isEnabled}`}
+              key={`chatbot-${instanceIdRef.current}-${internalIsLoggedIn}`}
               settings={settings}
               flow={flow}
               plugins={plugins}

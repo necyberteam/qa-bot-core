@@ -14,7 +14,8 @@ import LoginButton from '../../components/LoginButton';
  * @param {string} params.apiKey API key for authentication (optional)
  * @param {Function} params.sessionId Function that returns current session ID
  * @param {Function} params.isResetting Function that returns whether we're currently resetting
- * @param {boolean} params.enabled Whether the user is logged in/enabled (optional)
+ * @param {boolean} params.isLoggedIn Whether the user is logged in (required)
+ * @param {boolean} params.allowAnonAccess Allow Q&A without login (default: false)
  * @param {string} params.loginUrl Login URL to redirect to (optional)
  * @returns {Object} Q&A flow configuration
  */
@@ -24,14 +25,15 @@ export const createQAFlow = ({
   apiKey,
   sessionId: getSessionId,
   isResetting = () => false,
-  enabled = true,
+  isLoggedIn,
+  allowAnonAccess = false,
   loginUrl = '/login'
 }) => {
-  // If user is not logged in, return a login prompt flow
-  if (!enabled) {
+  // Gate Q&A when user is logged out (unless allowAnonAccess is true)
+  if (isLoggedIn === false && !allowAnonAccess) {
     return {
       qa_loop: {
-        message: "To ask questions, you need to log in first.",
+        message: "To ask questions, please log in first.",
         component: <LoginButton loginUrl={loginUrl} />,
         chatDisabled: true,
         path: "qa_loop"

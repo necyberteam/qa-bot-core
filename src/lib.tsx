@@ -7,6 +7,23 @@ import './styles/index.css'; // QA Bot styles
 // Export the main component
 export { QABot };
 
+// Export file upload components and utilities
+export { FileUploadComponent } from './components/FileUploadComponent';
+export type { FileUploadComponentProps } from './components/FileUploadComponent';
+export { useScreenshotCapture } from './hooks/useScreenshotCapture';
+export type { ScreenshotCaptureResult } from './hooks/useScreenshotCapture';
+export {
+  fileToBase64,
+  filesToBase64,
+  validateFileSize,
+  formatFileSize
+} from './utils/file-utils';
+export type { ProcessedFile } from './utils/file-utils';
+
+// Export flow utilities
+export { applyFlowSettings } from './utils/flow-settings';
+export type { FlowSettingsOptions } from './utils/flow-settings';
+
 // Export types for usage
 export type {
   QABotProps,
@@ -26,7 +43,8 @@ interface QABotConfig {
   ratingEndpoint?: string;
   defaultOpen?: boolean;
   embedded?: boolean;
-  enabled?: boolean;
+  isLoggedIn: boolean;
+  allowAnonAccess?: boolean;
   welcomeMessage: string;
   primaryColor?: string;
   secondaryColor?: string;
@@ -54,7 +72,8 @@ interface ProgrammaticQABotProps {
   ratingEndpoint?: string;
   defaultOpen?: boolean;
   embedded?: boolean;
-  enabled?: boolean;
+  isLoggedIn: boolean;
+  allowAnonAccess?: boolean;
   welcomeMessage: string;
   primaryColor?: string;
   secondaryColor?: string;
@@ -115,7 +134,8 @@ const ProgrammaticQABot = React.forwardRef<BotControllerHandle, ProgrammaticQABo
         placeholder={props.placeholder}
         errorMessage={props.errorMessage}
         embedded={props.embedded}
-        enabled={props.enabled}
+        isLoggedIn={props.isLoggedIn}
+        allowAnonAccess={props.allowAnonAccess}
         open={isOpen}
         onOpenChange={setIsOpen}
         footerText={props.footerText}
@@ -152,7 +172,8 @@ export function qaBot(config: QABotConfig): QABotInstance | undefined {
         ratingEndpoint={config.ratingEndpoint}
         defaultOpen={config.defaultOpen}
         embedded={config.embedded}
-        enabled={config.enabled}
+        isLoggedIn={config.isLoggedIn}
+        allowAnonAccess={config.allowAnonAccess}
         welcomeMessage={config.welcomeMessage}
         primaryColor={config.primaryColor}
         secondaryColor={config.secondaryColor}

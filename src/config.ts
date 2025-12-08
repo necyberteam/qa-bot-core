@@ -1,4 +1,4 @@
-import type { Settings } from 'react-chatbotify';
+import type { Settings, Flow } from 'react-chatbotify';
 
 export interface QABotProps {
   apiKey: string;
@@ -15,10 +15,32 @@ export interface QABotProps {
   footerText?: string;
   footerLink?: string;
   tooltipText?: string;
-  enabled?: boolean;
   loginUrl?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+
+  /**
+   * Whether the user is currently logged in.
+   * - Required: this bot expects login state to be tracked
+   * - Controls header icon (login button when false, user icon when true)
+   * - When false, Q&A is gated by default (shows login prompt)
+   */
+  isLoggedIn: boolean;
+
+  /**
+   * Allow anonymous access to Q&A even when not logged in.
+   * - Default: false (Q&A is gated when isLoggedIn is false)
+   * - Set to true to bypass login gating for Q&A
+   * - Does not affect custom flows (tickets, security, etc.)
+   */
+  allowAnonAccess?: boolean;
+
+  /**
+   * Custom flow steps to merge with the built-in Q&A flow.
+   * Use this to add ticket creation flows, feedback flows, etc.
+   * These steps will be merged into the flow object.
+   */
+  customFlow?: Flow;
 }
 
 /**
@@ -34,7 +56,6 @@ export const defaultValues: {
   errorMessage: string;
   embedded: boolean;
   tooltipText: string;
-  enabled: boolean;
   loginUrl: string;
 } = {
   primaryColor: '#1a5b6e',
@@ -43,10 +64,9 @@ export const defaultValues: {
   botName: 'Q&A Bot',
   avatar: '/chat-icon.svg',
   placeholder: 'Type your question here...',
-  errorMessage: 'Chat is currently unavailable',
+  errorMessage: 'Select an option to continue',
   embedded: false,
   tooltipText: 'Ask me a question!',
-  enabled: true,
   loginUrl: '/login'
 };
 
@@ -80,7 +100,16 @@ export const fixedReactChatbotifySettings: Settings = {
   },
   userBubble: {
     showAvatar: false
-  }
+  },
+  // Disable notification badge on chat button
+  notification: {
+    disabled: true,
+    showCount: false
+  },
+  // Disable other optional features
+  audio: { disabled: true },
+  emoji: { disabled: true },
+  fileAttachment: { disabled: true }
 };
 
 

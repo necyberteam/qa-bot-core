@@ -1,19 +1,17 @@
 import React, { useEffect } from 'react';
-import NewChatButton from '../components/NewChatButton';
 import type { Settings } from 'react-chatbotify';
 import type { ThemeColors } from '../config';
 
 interface UseChatBotSettingsProps {
   settings: Settings;
   themeColors: ThemeColors;
-  footerText?: string;
-  footerLink?: string;
 }
 
 /**
  * Custom hook to apply theme colors and accessibility enhancements
+ * Note: Footer is configured in QABot's useMemo to avoid flashing default footer
  */
-const useChatBotSettings = ({ settings, themeColors, footerText, footerLink }: UseChatBotSettingsProps): void => {
+const useChatBotSettings = ({ settings, themeColors }: UseChatBotSettingsProps): void => {
   // Apply theme colors as CSS variables
   useEffect(() => {
     if (themeColors) {
@@ -69,27 +67,14 @@ const useChatBotSettings = ({ settings, themeColors, footerText, footerLink }: U
       icon: settings.header?.avatar,
     };
 
-    settings.audio = { disabled: true };
-    settings.emoji = { disabled: true };
-    settings.fileAttachment = { disabled: true };
-    settings.notification = { disabled: true };
-
-    // Dynamic footer based on props
-    const footerTextElement = footerText
-      ? (footerLink
-          ? <a href={footerLink} target="_blank" rel="noopener noreferrer" key="footer-link">{footerText}</a>
-          : <span key="footer-text">{footerText}</span>)
-      : null;
-
-    settings.footer = {
-      text: footerTextElement,
-      buttons: [<NewChatButton key="new-chat-button" />]
-    };
+    // Note: audio, emoji, fileAttachment, and notification settings
+    // are now in fixedReactChatbotifySettings (config.ts) to ensure
+    // they're applied before first render
 
     settings.event = {
       rcbToggleChatWindow: true
     };
-  }, [settings, footerText, footerLink]);
+  }, [settings]);
 };
 
 export default useChatBotSettings;
