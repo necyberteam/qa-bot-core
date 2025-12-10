@@ -123,7 +123,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       : <UserIcon key="user-icon" />;
 
     base.header = {
-      title: botName || defaultValues.botName,
+      title: <span style={{ fontSize: 14, fontWeight: 500 }}>{botName || defaultValues.botName}</span>,
       showAvatar: true,
       avatar: logo || defaultValues.avatar,
       buttons: [
