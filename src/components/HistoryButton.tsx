@@ -33,16 +33,14 @@ const getHistoryName = (messages: any[]): string => {
  * @returns Rendered history button
  */
 const HistoryButton: React.FC = () => {
-  const { getHistoryMessages } = useChatHistory();
+  const { getHistoryMessages, showChatHistory } = useChatHistory();
 
   const handleClick = () => {
     const historyMessages = getHistoryMessages();
     const historyName = getHistoryName(historyMessages);
 
-    console.log('=== Chat History ===');
-    console.log('Name:', historyName);
-    console.log('Messages:', historyMessages);
-    console.log('====================');
+    console.log('| annotated history messages: |\n', simplifiedMessages(historyMessages));
+    // showChatHistory();
   };
 
   return (
@@ -84,5 +82,37 @@ const HistoryButton: React.FC = () => {
     </button>
   );
 };
+
+export function simplifiedMessages(messages: any[]): any[] {
+  // for now, just return the input
+  // return messages.map(msg => ({
+  //   const sender = msg.sender;
+  //   const content = msg.content;
+  //   const timestamp = msg.timestamp;
+  //   const tags = msg.tags;
+  //   return {
+  //     sender,
+  //     content,
+  //     timestamp,
+  //     tags
+  //   }
+  return messages.map(msg => ({
+    sender: msg.sender,
+    content: getMessageWithoutHTML(msg.content)
+  }));
+}
+/**
+ * Removes HTML tags from a message
+ * Some messages content looks like this
+ * <div class=\"rcb-options-container \"><div class=\"rcb-options\" style=\"cursor:pointer;background-color:#fff\">👍 Helpful</div><div class=\"rcb-options\" style=\"cursor:pointer;background-color:#fff\">👎 Not helpful</div></div>
+ * We want to strip this down to just "👍 Helpful 👎 Not helpful"
+ */
+
+export function getMessageWithoutHTML(message: string): string {
+  return message
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 export default HistoryButton;
