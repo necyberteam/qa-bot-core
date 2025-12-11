@@ -7,6 +7,7 @@ import InputValidator from "@rcb-plugins/input-validator";
 import BotController from './BotController';
 import LoginButton from './LoginButton';
 import UserIcon from './UserIcon';
+import HistoryButton from './HistoryButton';
 import NewChatButton from './NewChatButton';
 import useThemeColors from '../hooks/useThemeColors';
 import useChatBotSettings from '../hooks/useChatBotSettings';
@@ -118,16 +119,17 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
 
     // Build header buttons array conditionally
     // Show login button only if explicitly logged out (isLoggedIn === false)
-    const loginOrUserButton = internalIsLoggedIn === false
-      ? <LoginButton key="login-button" loginUrl={loginUrl || defaultValues.loginUrl} isHeaderButton={true} />
-      : <UserIcon key="user-icon" />;
+    // Show history button + user icon when logged in
+    const headerButtons = internalIsLoggedIn === false
+      ? [<LoginButton key="login-button" loginUrl={loginUrl || defaultValues.loginUrl} isHeaderButton={true} />]
+      : [<HistoryButton key="history-button" />, <UserIcon key="user-icon" />];
 
     base.header = {
       title: <span style={{ fontSize: 14, fontWeight: 500 }}>{botName || defaultValues.botName}</span>,
       showAvatar: true,
       avatar: logo || defaultValues.avatar,
       buttons: [
-        loginOrUserButton,
+        ...headerButtons,
         Button.CLOSE_CHAT_BUTTON
       ]
     };
