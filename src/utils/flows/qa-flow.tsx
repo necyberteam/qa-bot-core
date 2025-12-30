@@ -127,7 +127,9 @@ export const createQAFlow = ({
             method: 'POST',
             headers,
             body: JSON.stringify({
-              query: userInput
+              query: userInput,
+              session_id: currentSessionId,
+              question_id: queryId
             })
           });
 
