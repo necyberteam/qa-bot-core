@@ -36,6 +36,13 @@ export interface QABotProps {
   allowAnonAccess?: boolean;
 
   /**
+   * The acting user's identifier (e.g., email or username).
+   * - Sent to the backend in both headers (X-Acting-User) and body (acting_user)
+   * - Optional: if not provided, requests will be anonymous
+   */
+  actingUser?: string;
+
+  /**
    * Custom flow steps to merge with the built-in Q&A flow.
    * Use this to add ticket creation flows, feedback flows, etc.
    * These steps will be merged into the flow object.

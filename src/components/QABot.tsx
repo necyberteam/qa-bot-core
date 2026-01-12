@@ -44,6 +44,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     // Login state props (isLoggedIn is required)
     isLoggedIn,
     allowAnonAccess = false,
+    actingUser,
 
     // Optional branding
     primaryColor,
@@ -189,7 +190,8 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       isResetting: sessionGetter.current.isResetting,
       isLoggedIn: internalIsLoggedIn,
       allowAnonAccess: allowAnonAccess,
-      loginUrl: loginUrl || defaultValues.loginUrl
+      loginUrl: loginUrl || defaultValues.loginUrl,
+      actingUser: actingUser
     });
 
     // Configure start step
@@ -205,7 +207,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       ...qaFlow,
       ...(customFlow || {})
     };
-  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow]);
+  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser]);
 
   // default react-chatbotify plugins
   const plugins = useMemo(() => {

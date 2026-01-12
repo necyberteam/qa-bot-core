@@ -17,6 +17,7 @@ import LoginButton from '../../components/LoginButton';
  * @param {boolean} params.isLoggedIn Whether the user is logged in (required)
  * @param {boolean} params.allowAnonAccess Allow Q&A without login (default: false)
  * @param {string} params.loginUrl Login URL to redirect to (optional)
+ * @param {string} params.actingUser The acting user's identifier (optional)
  * @returns {Object} Q&A flow configuration
  */
 export const createQAFlow = ({
@@ -27,7 +28,8 @@ export const createQAFlow = ({
   isResetting = () => false,
   isLoggedIn,
   allowAnonAccess = false,
-  loginUrl = '/login'
+  loginUrl = '/login',
+  actingUser
 }) => {
   // Gate Q&A when user is logged out (unless allowAnonAccess is true)
   if (isLoggedIn === false && !allowAnonAccess) {
@@ -122,15 +124,24 @@ export const createQAFlow = ({
             headers['X-Session-ID'] = currentSessionId;
             headers['X-Query-ID'] = queryId;
           }
+          if (actingUser) {
+            headers['X-Acting-User'] = actingUser;
+          }
+
+          // Build request body
+          const requestBody: Record<string, string> = {
+            query: userInput,
+            session_id: currentSessionId,
+            question_id: queryId
+          };
+          if (actingUser) {
+            requestBody.acting_user = actingUser;
+          }
 
           const response = await fetch(endpoint, {
             method: 'POST',
             headers,
-            body: JSON.stringify({
-              query: userInput,
-              session_id: currentSessionId,
-              question_id: queryId
-            })
+            body: JSON.stringify(requestBody)
           });
 
           if (!response.ok) {

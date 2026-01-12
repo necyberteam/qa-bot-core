@@ -257,7 +257,10 @@ Into: `"👍 Helpful 👎 Not helpful"`
 
 ## Open Questions
 
-1. **access-agent URL** — Need the deployed endpoint URL from Andrew to test new response format
+1. **Endpoints** — Two backends to support:
+   - **Old (UKY):** `https://access-ai-grace1-external.ccs.uky.edu/access/chat/api/` — simpler response format
+   - **New (access-agent):** `https://access-agent.elytra.net/api/v1/query` — richer response with metadata
+   - Andrew's branch deploy for testing: https://feature-access-agent-integration--qa-bot-core.netlify.app/
 
 2. **Logout behavior** — Does logout trigger conversation save? Need to coordinate with login state management
 
