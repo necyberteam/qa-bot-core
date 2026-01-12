@@ -138,6 +138,10 @@ export const createQAFlow = ({
             requestBody.acting_user = actingUser;
           }
 
+          // Log the session ID being sent
+          const sessionStyle = 'background: #1a5b6e; color: white; padding: 2px 6px; border-radius: 3px;';
+          console.log(`%c[Session]%c SENT to API`, sessionStyle, '', currentSessionId?.slice(-12));
+
           const response = await fetch(endpoint, {
             method: 'POST',
             headers,

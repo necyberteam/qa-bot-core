@@ -72,9 +72,15 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
   // Instance ID - stable across component lifecycle (for unique React keys)
   const instanceIdRef = useRef<string>(`bot_${Math.random().toString(36).substr(2, 9)}`);
 
+  // Session logging helper - styled console output for visibility
+  const logSession = (action: string, ...args: unknown[]) => {
+    const style = 'background: #1a5b6e; color: white; padding: 2px 6px; border-radius: 3px;';
+    console.log(`%c[Session]%c ${action}`, style, '', ...args);
+  };
+
   // Session management - use ref so session can change without recreating flow
   const initialSessionId = generateSessionId();
-  console.log('[QABot] Initial session ID generated:', initialSessionId);
+  logSession('CREATED', initialSessionId);
   const sessionIdRef = useRef<string>(initialSessionId);
 
   // Track when we're resetting to prevent message replay
@@ -91,7 +97,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     const oldSessionId = sessionIdRef.current;
     isResettingRef.current = true;
     sessionIdRef.current = generateSessionId();
-    console.log('[QABot] resetSession() - Old:', oldSessionId, '-> New:', sessionIdRef.current);
+    logSession('RESET', `${oldSessionId.slice(-12)} -> ${sessionIdRef.current.slice(-12)}`);
   };
 
   // Function to clear the resetting flag (called after flow restart completes)
