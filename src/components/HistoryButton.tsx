@@ -39,8 +39,26 @@ const HistoryButton: React.FC = () => {
     const historyMessages = getHistoryMessages();
     const historyName = getHistoryName(historyMessages);
 
-    console.log('| annotated history messages: |\n', simplifiedMessages(historyMessages));
-    // showChatHistory();
+    // Log the simplified version
+    console.log('[HistoryButton] Simplified messages:', simplifiedMessages(historyMessages));
+
+    // Log the RAW messages from RCB - see all fields
+    console.log('[HistoryButton] RAW messages from getHistoryMessages():', historyMessages);
+
+    // Log what's in localStorage - look for RCB keys
+    console.log('[HistoryButton] All localStorage keys:', Object.keys(localStorage));
+
+    // Try to find and log RCB-specific localStorage data
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('rcb') || key.includes('chat') || key.includes('history') || key.includes('message')) {
+        try {
+          const value = localStorage.getItem(key);
+          console.log(`[HistoryButton] localStorage["${key}"]:`, value ? JSON.parse(value) : value);
+        } catch {
+          console.log(`[HistoryButton] localStorage["${key}"]:`, localStorage.getItem(key));
+        }
+      }
+    });
   };
 
   return (
