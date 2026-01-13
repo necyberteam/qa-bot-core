@@ -79,9 +79,12 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
   };
 
   // Session management - use ref so session can change without recreating flow
-  const initialSessionId = generateSessionId();
-  logSession('CREATED', initialSessionId);
-  const sessionIdRef = useRef<string>(initialSessionId);
+  // Use lazy initializer to only generate once per mount
+  const sessionIdRef = useRef<string | null>(null);
+  if (sessionIdRef.current === null) {
+    sessionIdRef.current = generateSessionId();
+    logSession('CREATED', sessionIdRef.current);
+  }
 
   // Track when we're resetting to prevent message replay
   const isResettingRef = useRef<boolean>(false);

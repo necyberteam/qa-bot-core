@@ -89,6 +89,14 @@ export const createQAFlow = ({
                 headers['X-Query-ID'] = feedbackQueryId;
               }
 
+              // Log the session ID being sent to rating endpoint
+              const sessionStyle = 'background: #1a5b6e; color: white; padding: 2px 6px; border-radius: 3px;';
+              console.log(`%c[Session]%c SENT to RATING API`, sessionStyle, '', {
+                session_id: currentSessionId,
+                query_id: feedbackQueryId,
+                rating: isPositive ? 1 : 0
+              });
+
               await fetch(ratingEndpoint, {
                 method: 'POST',
                 headers,
@@ -140,7 +148,10 @@ export const createQAFlow = ({
 
           // Log the session ID being sent
           const sessionStyle = 'background: #1a5b6e; color: white; padding: 2px 6px; border-radius: 3px;';
-          console.log(`%c[Session]%c SENT to API`, sessionStyle, '', currentSessionId?.slice(-12));
+          console.log(`%c[Session]%c SENT to API`, sessionStyle, '', {
+            session_id: currentSessionId,
+            question_id: queryId
+          });
 
           const response = await fetch(endpoint, {
             method: 'POST',
@@ -153,6 +164,13 @@ export const createQAFlow = ({
           }
 
           const body = await response.json();
+
+          // Log if server echoes back session info
+          if (body.session_id || body.sessionId) {
+            console.log(`%c[Session]%c RECEIVED from API`, sessionStyle, '', {
+              session_id: body.session_id || body.sessionId
+            });
+          }
 
           // Support different response formats
           const text = body.response || body.answer || body.text || body.message;
