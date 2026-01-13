@@ -125,7 +125,7 @@ const HistoryButton: React.FC = () => {
           height: '30px',
           borderRadius: '50%',
           backgroundColor: 'var(--primaryColor, #1a5b6e)',
-          marginRight: '5px',
+          marginRight: '18px',
           display: 'flex',
           border: 'none',
           cursor: 'pointer',
@@ -159,16 +159,16 @@ const HistoryButton: React.FC = () => {
           ref={menuRef}
           role="menu"
           style={{
-            position: 'absolute',
-            top: '100%',
+            position: 'fixed',
+            left: 0,
             right: 0,
-            marginTop: '4px',
+            top: 'auto',
+            marginTop: '8px',
             backgroundColor: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-            minWidth: '220px',
-            maxWidth: '280px',
-            maxHeight: '300px',
+            borderRadius: 0,
+            borderBottom: '3px solid var(--primaryColor, #1a5b6e)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            maxHeight: '250px',
             overflowY: 'auto',
             zIndex: 1000
           }}
