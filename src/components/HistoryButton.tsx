@@ -1,6 +1,8 @@
 // src/components/HistoryButton.tsx
 import React, { useState, useRef, useEffect } from 'react';
-import { getAllSessions } from '../utils/session-utils';
+import { useMessages, useChatHistory } from 'react-chatbotify';
+import { getAllSessions, getSessionMessageIds } from '../utils/session-utils';
+import { useSession } from '../contexts/SessionContext';
 
 /**
  * Format a date string for display
@@ -36,6 +38,10 @@ const HistoryButton: React.FC = () => {
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
+  const { replaceMessages } = useMessages();
+  const { getHistoryMessages } = useChatHistory();
+  const { setSessionId, getSessionId } = useSession();
+
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -66,7 +72,37 @@ const HistoryButton: React.FC = () => {
   };
 
   const handleSelectSession = (sessionId: string) => {
-    console.log('load messages...', sessionId);
+    const currentSessionId = getSessionId();
+
+    // Don't reload if already on this session
+    if (sessionId === currentSessionId) {
+      console.log('[HistoryButton] Already on this session, skipping');
+      setIsOpen(false);
+      return;
+    }
+
+    console.log('[HistoryButton] Restoring session:', sessionId);
+
+    // 1. Get the message IDs for this session from our store
+    const sessionMessageIds = getSessionMessageIds(sessionId);
+    console.log('[HistoryButton] Session message IDs:', sessionMessageIds);
+
+    // 2. Get all messages from RCB's history
+    const allHistoryMessages = getHistoryMessages();
+    console.log('[HistoryButton] All history messages:', allHistoryMessages.length);
+
+    // 3. Filter to only messages belonging to this session
+    const sessionMessages = allHistoryMessages.filter(msg =>
+      sessionMessageIds.includes(msg.id)
+    );
+    console.log('[HistoryButton] Filtered session messages:', sessionMessages);
+
+    // 4. Replace displayed messages with the session's messages
+    replaceMessages(sessionMessages);
+
+    // 5. Update the active session ID so new messages go to this session
+    setSessionId(sessionId);
+
     setIsOpen(false);
   };
 

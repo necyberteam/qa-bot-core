@@ -101,7 +101,14 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     const oldSessionId = sessionIdRef.current;
     isResettingRef.current = true;
     sessionIdRef.current = generateSessionId();
-    logSession('RESET', `${oldSessionId.slice(-12)} -> ${sessionIdRef.current.slice(-12)}`);
+    logSession('RESET', `${oldSessionId?.slice(-12)} -> ${sessionIdRef.current.slice(-12)}`);
+  };
+
+  // Function to set session ID (for restoring a previous session)
+  const setSessionId = (sessionId: string) => {
+    const oldSessionId = sessionIdRef.current;
+    sessionIdRef.current = sessionId;
+    logSession('RESTORED', `${oldSessionId?.slice(-12)} -> ${sessionId.slice(-12)}`);
   };
 
   // Function to clear the resetting flag (called after flow restart completes)
@@ -260,7 +267,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       role="region"
       aria-label={botName || defaultValues.botName}
     >
-      <SessionProvider getSessionId={() => sessionIdRef.current!} resetSession={resetSession} clearResettingFlag={clearResettingFlag}>
+      <SessionProvider getSessionId={() => sessionIdRef.current!} setSessionId={setSessionId} resetSession={resetSession} clearResettingFlag={clearResettingFlag}>
         <ChatBotProvider>
           <div>
             <SessionMessageTracker />
