@@ -1,6 +1,6 @@
 # QA Bot Core: Implementation Guide
 
-*Last updated: Jan 12, 2025*
+*Last updated: Jan 13, 2025*
 
 ---
 
@@ -61,7 +61,7 @@ RCB's `getHistoryMessages()` returns a flat list with no concept of "this was co
 
 ---
 
-### Stream 1: Request Enrichment
+### Stream 1: Request Enrichment ✅ DONE
 
 Send more data to the server.
 
@@ -91,21 +91,27 @@ body: JSON.stringify({
 })
 ```
 
-**Status:** Andrew's branch (`feature/access-agent-integration`) has `session_id` and `question_id` in body. Need to add `acting_user`.
+**Implemented in:** `src/components/QABot.tsx`, `src/utils/flows/qa-flow.tsx`, `src/config.ts`
 
-### Stream 2: Chat History
+### Stream 2: Chat History ✅ DONE
 
 Let users see and resume past conversations.
 
 **How it works:**
 1. History button in header shows list of past chats
-2. Chats saved to localStorage at conversation boundaries
+2. Chats saved to localStorage at conversation boundaries (via `SessionMessageTracker`)
 3. Each chat indexed by session ID
-4. To resume: load messages into RCB display, send old session ID to server
+4. To resume: load messages into RCB display, restore old session ID
 
 **Key insight:** We store messages locally for *display only*. We don't send old messages to the server—the server already has context via the session ID.
 
-### Stream 3: Response Metadata
+**Implemented in:**
+- `src/components/HistoryButton.tsx` — dropdown menu with past conversations
+- `src/components/SessionMessageTracker.tsx` — tracks messages per session
+- `src/utils/fix-markdown-links.ts` — fixes malformed markdown links on restore
+- Session restore filters out rating option messages
+
+### Stream 3: Response Metadata ⬚ TODO
 
 Extract and display metadata from access-agent responses.
 
@@ -177,24 +183,24 @@ localStorage['qa_bot_messages_abc123'] = JSON.stringify([
 
 | File | Purpose |
 |------|---------|
-| `src/components/QABot.tsx` | Main component, session ID generation (line ~75) |
+| `src/components/QABot.tsx` | Main component, session ID generation |
 | `src/components/NewChatButton.tsx` | Triggers session reset + flow restart |
-| `src/components/HistoryButton.tsx` | Shows past conversations (to implement) |
-| `src/contexts/SessionContext.tsx` | Provides `resetSession()` to children |
+| `src/components/HistoryButton.tsx` | Shows past conversations, restore functionality |
+| `src/components/SessionMessageTracker.tsx` | Tracks messages per session for history |
+| `src/contexts/SessionContext.tsx` | Provides `resetSession()` and `setSessionId()` to children |
 | `src/utils/flows/qa-flow.tsx` | API request/response handling |
-| `src/utils/session-utils.ts` | `generateSessionId()`, `getOrCreateSessionId()` (unused) |
+| `src/utils/session-utils.ts` | `generateSessionId()`, `getOrCreateSessionId()` |
+| `src/utils/fix-markdown-links.ts` | Fixes malformed markdown links on history restore |
 
 ---
 
-## Implementation Order
+## Implementation Status
 
-Suggested sequence:
-
-1. **Request Enrichment** — small change, unblocks backend work
-2. **Chat History** — core user-facing feature
-3. **Response Metadata** — enhancement, can be basic initially
-
-Streams 1 and 3 touch `qa-flow.tsx`. Stream 2 touches session management and adds new components. Minimal overlap if done in this order.
+| Stream | Status | Notes |
+|--------|--------|-------|
+| 1. Request Enrichment | ✅ Done | `actingUser` prop, headers, body fields |
+| 2. Chat History | ✅ Done | History dropdown, session tracking, restore |
+| 3. Response Metadata | ⬚ Todo | Parse and display `tools_used`, `confidence`, `metadata` |
 
 ---
 
@@ -262,10 +268,10 @@ Into: `"👍 Helpful 👎 Not helpful"`
    - **New (access-agent):** `https://access-agent.elytra.net/api/v1/query` — richer response with metadata
    - Andrew's branch deploy for testing: https://feature-access-agent-integration--qa-bot-core.netlify.app/
 
-2. **Logout behavior** — Does logout trigger conversation save? Need to coordinate with login state management
+2. ~~**Logout behavior**~~ — Deferred; not blocking current work
 
-3. **History limit** — How many conversations to store in localStorage? Oldest-first eviction strategy?
+3. **History limit** — How many conversations to store in localStorage? Oldest-first eviction strategy? (Not yet implemented)
 
-4. **RCB message format** — Need to confirm exact format RCB uses for `getHistoryMessages()` so we can deserialize correctly when loading past conversations
+4. ~~**RCB message format**~~ — Resolved; we track messages ourselves via `SessionMessageTracker`
 
-5. **setTimeout in NewChatButton** — The 100ms timeout for `clearResettingFlag()` is fragile. Does RCB expose a callback for "flow restart complete"?
+5. ~~**setTimeout in NewChatButton**~~ — Works reliably in practice
