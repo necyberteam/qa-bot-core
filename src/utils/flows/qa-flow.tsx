@@ -5,6 +5,40 @@ import { getProcessedText } from '../getProcessedText';
 import LoginButton from '../../components/LoginButton';
 
 /**
+ * Builds a plain text string for displaying response metadata.
+ * Returns empty string if no metadata is present.
+ */
+function buildMetadataText(body: {
+  confidence?: string;
+  tools_used?: string[];
+  metadata?: Record<string, unknown>;
+}): string {
+  const { confidence, tools_used, metadata } = body;
+
+  // Skip if no metadata present
+  if (!confidence && (!tools_used || tools_used.length === 0)) {
+    return '';
+  }
+
+  const parts: string[] = [];
+
+  if (confidence) {
+    parts.push(`• Confidence: ${confidence}`);
+  }
+
+  if (tools_used && tools_used.length > 0) {
+    parts.push(`• Tools used: ${tools_used.join(', ')}`);
+  }
+
+  // Show agent name from metadata (useful for demo/debugging)
+  if (metadata?.agent) {
+    parts.push(`• Agent: ${metadata.agent}`);
+  }
+
+  return `---\n${parts.join('\n')}`;
+}
+
+/**
  * Creates the basic Q&A conversation flow
  * Handles questions, responses, and optional ratings
  *
@@ -165,10 +199,23 @@ export const createQAFlow = ({
 
           const body = await response.json();
 
+          // Log full response for debugging metadata
+          const metaStyle = 'background: #6b21a8; color: white; padding: 2px 6px; border-radius: 3px;';
+          console.log(`%c[Response]%c Full API response body:`, metaStyle, '', body);
+
           // Log if server echoes back session info
           if (body.session_id || body.sessionId) {
             console.log(`%c[Session]%c RECEIVED from API`, sessionStyle, '', {
               session_id: body.session_id || body.sessionId
+            });
+          }
+
+          // Log metadata fields if present (access-agent format)
+          if (body.tools_used || body.confidence || body.metadata) {
+            console.log(`%c[Metadata]%c Response metadata:`, metaStyle, '', {
+              tools_used: body.tools_used || [],
+              confidence: body.confidence || null,
+              metadata: body.metadata || {}
             });
           }
 
@@ -182,8 +229,12 @@ export const createQAFlow = ({
           // Process text (handles markdown, links, etc.)
           const processedText = getProcessedText(text);
 
+          // Build metadata text (empty string if no metadata present)
+          const metadataText = buildMetadataText(body);
+          const fullContent = metadataText ? `${processedText}\n\n${metadataText}` : processedText;
+
           // Inject the response
-          await chatState.injectMessage(processedText);
+          await chatState.injectMessage(fullContent);
 
           // Mark that we've shown a response
           hasShownResponse = true;
