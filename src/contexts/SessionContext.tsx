@@ -1,6 +1,7 @@
 import React, { createContext, useContext } from 'react';
 
 interface SessionContextType {
+  getSessionId: () => string;
   resetSession: () => void;
   clearResettingFlag: () => void;
 }
@@ -9,15 +10,17 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
 export const SessionProvider: React.FC<{
   children: React.ReactNode;
+  getSessionId: () => string;
   resetSession: () => void;
   clearResettingFlag: () => void;
 }> = ({
   children,
+  getSessionId,
   resetSession,
   clearResettingFlag
 }) => {
   return (
-    <SessionContext.Provider value={{ resetSession, clearResettingFlag }}>
+    <SessionContext.Provider value={{ getSessionId, resetSession, clearResettingFlag }}>
       {children}
     </SessionContext.Provider>
   );

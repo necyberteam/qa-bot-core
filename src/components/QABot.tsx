@@ -9,6 +9,7 @@ import LoginButton from './LoginButton';
 import UserIcon from './UserIcon';
 import HistoryButton from './HistoryButton';
 import NewChatButton from './NewChatButton';
+import SessionMessageTracker from './SessionMessageTracker';
 import useThemeColors from '../hooks/useThemeColors';
 import useChatBotSettings from '../hooks/useChatBotSettings';
 import useFocusableSendButton from '../hooks/useFocusableSendButton';
@@ -174,6 +175,16 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       buttons: [<NewChatButton key="new-chat-button" />]
     };
 
+    // Enable events for message tracking and debugging
+    base.event = {
+      rcbPreInjectMessage: true,
+      rcbPostInjectMessage: true,
+      rcbUserSubmitText: true,
+      rcbChangePath: true,
+      rcbToggleChatWindow: true
+    };
+    console.log('[QABot] Settings with events:', base);
+
     return base;
   }, [primaryColor, secondaryColor, botName, logo, placeholder, errorMessage, embedded, tooltipText, internalIsLoggedIn, loginUrl, footerText, footerLink]);
 
@@ -249,9 +260,10 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       role="region"
       aria-label={botName || defaultValues.botName}
     >
-      <SessionProvider resetSession={resetSession} clearResettingFlag={clearResettingFlag}>
+      <SessionProvider getSessionId={() => sessionIdRef.current!} resetSession={resetSession} clearResettingFlag={clearResettingFlag}>
         <ChatBotProvider>
           <div>
+            <SessionMessageTracker />
             <BotController
               ref={ref}
               embedded={settings.general?.embedded || false}
