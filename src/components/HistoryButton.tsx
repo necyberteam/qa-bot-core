@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useMessages, useChatHistory } from 'react-chatbotify';
 import { getAllSessions, getSessionMessageIds } from '../utils/session-utils';
+import { fixMarkdownLinksInDom } from '../utils/fix-markdown-links';
 import { useSession } from '../contexts/SessionContext';
 
 /**
@@ -92,15 +93,20 @@ const HistoryButton: React.FC = () => {
     console.log('[HistoryButton] All history messages:', allHistoryMessages.length);
 
     // 3. Filter to only messages belonging to this session
+    // Also skip rating option messages (thumbs up/down) - they're not useful in history
     const sessionMessages = allHistoryMessages.filter(msg =>
-      sessionMessageIds.includes(msg.id)
+      sessionMessageIds.includes(msg.id) &&
+      !(typeof msg.content === 'string' && msg.content.includes('rcb-options-container'))
     );
     console.log('[HistoryButton] Filtered session messages:', sessionMessages);
 
     // 4. Replace displayed messages with the session's messages
     replaceMessages(sessionMessages);
 
-    // 5. Update the active session ID so new messages go to this session
+    // 5. Fix markdown links in rendered messages (see fix-markdown-links.ts for explanation)
+    fixMarkdownLinksInDom();
+
+    // 6. Update the active session ID so new messages go to this session
     setSessionId(sessionId);
 
     setIsOpen(false);
