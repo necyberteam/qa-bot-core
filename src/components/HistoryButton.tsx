@@ -1,27 +1,25 @@
 // src/components/HistoryButton.tsx
-import React from 'react';
-import { useChatHistory } from 'react-chatbotify';
+import React, { useState, useRef, useEffect } from 'react';
+import { getAllSessions } from '../utils/session-utils';
 
 /**
- * Truncates a string to a maximum length with ellipsis
+ * Format a date string for display
  */
-const truncateName = (text: string, maxLength: number = 15): string => {
-  if (text.length <= maxLength) {
-    return text;
-  }
-  return text.slice(0, maxLength) + '...';
-};
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-/**
- * Gets a display name from chat history based on the first user message
- */
-const getHistoryName = (messages: any[]): string => {
-  // Find the first user message (sender is "user")
-  const firstUserMessage = messages.find(msg => msg.sender === 'user');
-  if (firstUserMessage && firstUserMessage.content) {
-    return truncateName(firstUserMessage.content);
+  if (diffDays === 0) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } else if (diffDays === 1) {
+    return 'Yesterday';
+  } else if (diffDays < 7) {
+    return date.toLocaleDateString([], { weekday: 'short' });
+  } else {
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
-  return 'Chat History';
 };
 
 /**
@@ -33,71 +31,167 @@ const getHistoryName = (messages: any[]): string => {
  * @returns Rendered history button
  */
 const HistoryButton: React.FC = () => {
-  const { getHistoryMessages, showChatHistory } = useChatHistory();
+  const [isOpen, setIsOpen] = useState(false);
+  const [sessions, setSessions] = useState<ReturnType<typeof getAllSessions>>([]);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   const handleClick = () => {
-    const historyMessages = getHistoryMessages();
-    const historyName = getHistoryName(historyMessages);
+    if (!isOpen) {
+      // Refresh sessions when opening
+      setSessions(getAllSessions());
+    }
+    setIsOpen(!isOpen);
+  };
 
-    // Log the simplified version
-    console.log('[HistoryButton] Simplified messages:', simplifiedMessages(historyMessages));
-
-    // Log the RAW messages from RCB - see all fields
-    console.log('[HistoryButton] RAW messages from getHistoryMessages():', historyMessages);
-
-    // Log what's in localStorage - look for RCB keys
-    console.log('[HistoryButton] All localStorage keys:', Object.keys(localStorage));
-
-    // Try to find and log RCB-specific localStorage data
-    Object.keys(localStorage).forEach(key => {
-      if (key.includes('rcb') || key.includes('chat') || key.includes('history') || key.includes('message')) {
-        try {
-          const value = localStorage.getItem(key);
-          console.log(`[HistoryButton] localStorage["${key}"]:`, value ? JSON.parse(value) : value);
-        } catch {
-          console.log(`[HistoryButton] localStorage["${key}"]:`, localStorage.getItem(key));
-        }
-      }
-    });
+  const handleSelectSession = (sessionId: string) => {
+    console.log('load messages...', sessionId);
+    setIsOpen(false);
   };
 
   return (
-    <button
-      className="history-button"
-      onClick={handleClick}
-      style={{
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '30px',
-        height: '30px',
-        borderRadius: '50%',
-        backgroundColor: 'var(--primaryColor, #1a5b6e)',
-        marginRight: '5px',
-        display: 'flex',
-        border: 'none',
-        cursor: 'pointer',
-        padding: 0
-      }}
-      aria-label="View chat history"
-      title="View chat history"
-    >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-        focusable="false"
+    <div style={{ position: 'relative' }}>
+      <button
+        ref={buttonRef}
+        className="history-button"
+        onClick={handleClick}
+        style={{
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '30px',
+          height: '30px',
+          borderRadius: '50%',
+          backgroundColor: 'var(--primaryColor, #1a5b6e)',
+          marginRight: '5px',
+          display: 'flex',
+          border: 'none',
+          cursor: 'pointer',
+          padding: 0
+        }}
+        aria-label="View chat history"
+        title="View chat history"
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
       >
-        {/* Clock/history icon */}
-        <circle cx="12" cy="12" r="10"></circle>
-        <polyline points="12 6 12 12 16 14"></polyline>
-      </svg>
-    </button>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="white"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          {/* Clock/history icon */}
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div
+          ref={menuRef}
+          role="menu"
+          style={{
+            position: 'absolute',
+            top: '100%',
+            right: 0,
+            marginTop: '4px',
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            minWidth: '220px',
+            maxWidth: '280px',
+            maxHeight: '300px',
+            overflowY: 'auto',
+            zIndex: 1000
+          }}
+        >
+          {sessions.length === 0 ? (
+            <div
+              style={{
+                padding: '12px 16px',
+                color: '#666',
+                fontSize: '14px',
+                textAlign: 'center'
+              }}
+            >
+              No chat history
+            </div>
+          ) : (
+            sessions.map((session) => (
+              <button
+                key={session.sessionId}
+                role="menuitem"
+                onClick={() => handleSelectSession(session.sessionId)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
+                  borderBottom: '1px solid #eee'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f5f5f5';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '14px',
+                    color: '#333',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {session.preview || 'New conversation'}
+                </span>
+                <span
+                  style={{
+                    fontSize: '12px',
+                    color: '#888'
+                  }}
+                >
+                  {formatDate(session.startedAt)}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 
