@@ -156,6 +156,7 @@ function ExampleApp() {
                 open={chatOpen}
                 onOpenChange={setChatOpen}
                 embedded={true}
+                actingUser="demo-user@access-ci.org"
               />
             </div>
           ) : (
@@ -186,6 +187,7 @@ function ExampleApp() {
           open={chatOpen}
           onOpenChange={setChatOpen}
           embedded={false}
+          actingUser="demo-user@access-ci.org"
         />
       )}
     </div>

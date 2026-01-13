@@ -184,7 +184,8 @@ export const createQAFlow = ({
           const sessionStyle = 'background: #1a5b6e; color: white; padding: 2px 6px; border-radius: 3px;';
           console.log(`%c[Session]%c SENT to API`, sessionStyle, '', {
             session_id: currentSessionId,
-            question_id: queryId
+            question_id: queryId,
+            acting_user: actingUser || '(not set)'
           });
 
           const response = await fetch(endpoint, {
