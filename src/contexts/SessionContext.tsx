@@ -5,8 +5,6 @@ interface SessionContextType {
   setSessionId: (sessionId: string) => void;
   resetSession: () => void;
   clearResettingFlag: () => void;
-  isRestoring: () => boolean;
-  setRestoring: (restoring: boolean) => void;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -17,19 +15,15 @@ export const SessionProvider: React.FC<{
   setSessionId: (sessionId: string) => void;
   resetSession: () => void;
   clearResettingFlag: () => void;
-  isRestoring: () => boolean;
-  setRestoring: (restoring: boolean) => void;
 }> = ({
   children,
   getSessionId,
   setSessionId,
   resetSession,
-  clearResettingFlag,
-  isRestoring,
-  setRestoring
+  clearResettingFlag
 }) => {
   return (
-    <SessionContext.Provider value={{ getSessionId, setSessionId, resetSession, clearResettingFlag, isRestoring, setRestoring }}>
+    <SessionContext.Provider value={{ getSessionId, setSessionId, resetSession, clearResettingFlag }}>
       {children}
     </SessionContext.Provider>
   );

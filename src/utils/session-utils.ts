@@ -2,17 +2,26 @@ import { v4 as uuidv4 } from 'uuid';
 import { logger } from './logger';
 
 const SESSION_MESSAGES_KEY = 'qa_bot_session_messages';
-const RCB_HISTORY_KEY = 'qa_bot_rcb_history';
 
 // Maximum total messages across all sessions
-// Must stay under RCB's maxEntries (100) to ensure messages are still available when restoring
-const MAX_TOTAL_MESSAGES = 80;
+const MAX_TOTAL_MESSAGES = 100;
 
 /**
- * Session message tracking structure
+ * Stored message structure - minimal data needed for restore
+ */
+export interface StoredMessage {
+  id: string;
+  content: string;
+  sender: string;
+  type: string;
+  timestamp: number;
+}
+
+/**
+ * Session data structure
  */
 export interface SessionMessageData {
-  messageIds: string[];
+  messages: StoredMessage[];
   startedAt: string;
   preview: string;
 }
@@ -45,7 +54,7 @@ export const getSessionMessagesStore = (): SessionMessagesStore => {
 const saveSessionMessagesStore = (store: SessionMessagesStore): void => {
   // Count total messages across all sessions
   const getTotalMessages = () =>
-    Object.values(store).reduce((sum, session) => sum + session.messageIds.length, 0);
+    Object.values(store).reduce((sum, session) => sum + session.messages.length, 0);
 
   // Evict oldest sessions until we're under the message limit
   while (getTotalMessages() > MAX_TOTAL_MESSAGES && Object.keys(store).length > 1) {
@@ -63,14 +72,16 @@ const saveSessionMessagesStore = (store: SessionMessagesStore): void => {
 };
 
 /**
- * Add a message ID to a session's tracking list
- * Called when RcbPostInjectMessageEvent fires
+ * Add a message to a session's storage.
+ * Called when RcbPreInjectMessageEvent fires.
+ * Stores the full message so we can restore sessions without relying on RCB's history.
  */
 export const addMessageToSession = (
   sessionId: string,
   messageId: string,
-  messageContent?: string,
-  sender?: string
+  messageContent: string,
+  sender: string,
+  type: string
 ): void => {
   const store = getSessionMessagesStore();
 
@@ -78,15 +89,15 @@ export const addMessageToSession = (
   const isNewSession = !store[sessionId];
   if (isNewSession) {
     store[sessionId] = {
-      messageIds: [],
+      messages: [],
       startedAt: new Date().toISOString(),
       preview: ''
     };
     logger.history('NEW session created', { sessionId: sessionId.slice(-12) });
   }
 
-  // Add message ID if not already present
-  const isDuplicate = store[sessionId].messageIds.includes(messageId);
+  // Skip if message with this ID already exists (deduplication)
+  const isDuplicate = store[sessionId].messages.some(m => m.id === messageId);
   if (isDuplicate) {
     logger.history('DUPLICATE message skipped', {
       sessionId: sessionId.slice(-12),
@@ -96,31 +107,34 @@ export const addMessageToSession = (
     return;
   }
 
-  store[sessionId].messageIds.push(messageId);
+  // Store the full message
+  const storedMessage: StoredMessage = {
+    id: messageId,
+    content: messageContent,
+    sender,
+    type,
+    timestamp: Date.now()
+  };
+
+  store[sessionId].messages.push(storedMessage);
   logger.history('MESSAGE added', {
     sessionId: sessionId.slice(-12),
     messageId: messageId.slice(-8),
     sender,
-    totalInSession: store[sessionId].messageIds.length
+    totalInSession: store[sessionId].messages.length
   });
 
   // Set preview from first user message
-  if (!store[sessionId].preview && sender?.toLowerCase() === 'user' && messageContent) {
-    const preview = typeof messageContent === 'string'
-      ? messageContent.slice(0, 50) + (messageContent.length > 50 ? '...' : '')
-      : '[Message]';
+  if (!store[sessionId].preview && sender.toLowerCase() === 'user' && messageContent) {
+    const preview = messageContent.slice(0, 50) + (messageContent.length > 50 ? '...' : '');
     store[sessionId].preview = preview;
   }
 
   saveSessionMessagesStore(store);
 
-  // Log localStorage state after save
-  const rcbHistory = localStorage.getItem(RCB_HISTORY_KEY);
-  const rcbMessageCount = rcbHistory ? JSON.parse(rcbHistory).length : 0;
   logger.history('STORAGE state', {
     ourSessions: Object.keys(store).length,
-    ourTotalMessages: Object.values(store).reduce((sum, s) => sum + s.messageIds.length, 0),
-    rcbMessages: rcbMessageCount
+    ourTotalMessages: Object.values(store).reduce((sum, s) => sum + s.messages.length, 0)
   });
 };
 
@@ -135,9 +149,10 @@ export const getAllSessions = (): Array<{ sessionId: string } & SessionMessageDa
 };
 
 /**
- * Get message IDs for a specific session
+ * Get all stored messages for a specific session.
+ * Returns messages in the format needed for RCB's replaceMessages().
  */
-export const getSessionMessageIds = (sessionId: string): string[] => {
+export const getSessionMessages = (sessionId: string): StoredMessage[] => {
   const store = getSessionMessagesStore();
-  return store[sessionId]?.messageIds || [];
+  return store[sessionId]?.messages || [];
 };

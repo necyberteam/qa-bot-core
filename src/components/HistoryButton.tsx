@@ -1,7 +1,7 @@
 // src/components/HistoryButton.tsx
 import React, { useState, useRef, useEffect } from 'react';
-import { useMessages, useChatHistory } from 'react-chatbotify';
-import { getAllSessions, getSessionMessageIds } from '../utils/session-utils';
+import { useMessages } from 'react-chatbotify';
+import { getAllSessions, getSessionMessages } from '../utils/session-utils';
 import { fixMarkdownLinksInDom } from '../utils/fix-markdown-links';
 import { useSession } from '../contexts/SessionContext';
 import { logger } from '../utils/logger';
@@ -41,8 +41,7 @@ const HistoryButton: React.FC = () => {
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const { replaceMessages } = useMessages();
-  const { getHistoryMessages } = useChatHistory();
-  const { setSessionId, getSessionId, setRestoring } = useSession();
+  const { setSessionId, getSessionId } = useSession();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -88,43 +87,30 @@ const HistoryButton: React.FC = () => {
       return;
     }
 
-    // 1. Get the message IDs for this session from our store
-    const sessionMessageIds = getSessionMessageIds(sessionId);
-    logger.history('Session message IDs from localStorage', {
-      count: sessionMessageIds.length,
-      ids: sessionMessageIds.map(id => id.slice(-8))
+    // 1. Get the stored messages for this session from our localStorage
+    const storedMessages = getSessionMessages(sessionId);
+    logger.history('Stored messages from our localStorage', {
+      count: storedMessages.length,
+      ids: storedMessages.map(m => m.id.slice(-8))
     });
 
-    // 2. Get all messages from RCB's history
-    const allHistoryMessages = getHistoryMessages();
-    logger.history('RCB history messages', {
-      count: allHistoryMessages.length,
-      ids: allHistoryMessages.map(msg => msg.id?.slice(-8))
-    });
+    // 2. Convert our stored messages to RCB Message format
+    const rcbMessages = storedMessages.map(m => ({
+      id: m.id,
+      content: m.content,
+      sender: m.sender.toUpperCase(),
+      type: m.type || 'string',
+      timestamp: new Date(m.timestamp).toISOString()
+    }));
 
-    // 3. Filter to only messages belonging to this session
-    // Also skip rating option messages (thumbs up/down) - they're not useful in history
-    const sessionMessages = allHistoryMessages.filter(msg =>
-      sessionMessageIds.includes(msg.id) &&
-      !(typeof msg.content === 'string' && msg.content.includes('rcb-options-container'))
-    );
-    logger.history('Filtered messages for session', {
-      count: sessionMessages.length,
-      ids: sessionMessages.map(msg => msg.id?.slice(-8))
-    });
+    // 3. Replace displayed messages with the session's messages
+    replaceMessages(rcbMessages);
+    logger.history('replaceMessages called', { count: rcbMessages.length });
 
-    // 4. Replace displayed messages with the session's messages
-    // Set restoring flag to prevent re-tracking these messages as new
-    // Note: We keep the flag set until the component unmounts or next user action
-    // because RCB may inject messages asynchronously
-    setRestoring(true);
-    replaceMessages(sessionMessages);
-    logger.history('replaceMessages called');
-
-    // 5. Fix markdown links in rendered messages (see fix-markdown-links.ts for explanation)
+    // 4. Fix markdown links in rendered messages (see fix-markdown-links.ts for explanation)
     fixMarkdownLinksInDom();
 
-    // 6. Update the active session ID so new messages go to this session
+    // 5. Update the active session ID so new messages go to this session
     setSessionId(sessionId);
     logger.history('Session ID updated', { newSession: sessionId.slice(-12) });
 
@@ -255,37 +241,5 @@ const HistoryButton: React.FC = () => {
     </div>
   );
 };
-
-export function simplifiedMessages(messages: any[]): any[] {
-  // for now, just return the input
-  // return messages.map(msg => ({
-  //   const sender = msg.sender;
-  //   const content = msg.content;
-  //   const timestamp = msg.timestamp;
-  //   const tags = msg.tags;
-  //   return {
-  //     sender,
-  //     content,
-  //     timestamp,
-  //     tags
-  //   }
-  return messages.map(msg => ({
-    sender: msg.sender,
-    content: getMessageWithoutHTML(msg.content)
-  }));
-}
-/**
- * Removes HTML tags from a message
- * Some messages content looks like this
- * <div class=\"rcb-options-container \"><div class=\"rcb-options\" style=\"cursor:pointer;background-color:#fff\">👍 Helpful</div><div class=\"rcb-options\" style=\"cursor:pointer;background-color:#fff\">👎 Not helpful</div></div>
- * We want to strip this down to just "👍 Helpful 👎 Not helpful"
- */
-
-export function getMessageWithoutHTML(message: string): string {
-  return message
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 export default HistoryButton;

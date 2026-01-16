@@ -116,13 +116,6 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     isResettingRef.current = false;
   };
 
-  // Track when we're restoring a session (to prevent re-tracking restored messages)
-  const isRestoringRef = useRef<boolean>(false);
-  const isRestoring = () => isRestoringRef.current;
-  const setRestoring = (restoring: boolean) => {
-    isRestoringRef.current = restoring;
-  };
-
   // Track if user is logged in (for internal reactivity)
   // Note: undefined is treated as "logged in" (open access mode)
   const [internalIsLoggedIn, setInternalIsLoggedIn] = useState(isLoggedIn);
@@ -273,7 +266,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       role="region"
       aria-label={botName || defaultValues.botName}
     >
-      <SessionProvider getSessionId={() => sessionIdRef.current!} setSessionId={setSessionId} resetSession={resetSession} clearResettingFlag={clearResettingFlag} isRestoring={isRestoring} setRestoring={setRestoring}>
+      <SessionProvider getSessionId={() => sessionIdRef.current!} setSessionId={setSessionId} resetSession={resetSession} clearResettingFlag={clearResettingFlag}>
         <ChatBotProvider>
           <div>
             <SessionMessageTracker />

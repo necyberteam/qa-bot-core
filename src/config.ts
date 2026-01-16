@@ -116,13 +116,8 @@ export const fixedReactChatbotifySettings: Settings = {
   // Disable other optional features
   audio: { disabled: true },
   emoji: { disabled: true },
-  fileAttachment: { disabled: true },
-  // Enable chat history persistence for session restore
-  chatHistory: {
-    disabled: false,
-    storageKey: 'qa_bot_rcb_history',
-    maxEntries: 100
-  }
+  fileAttachment: { disabled: true }
+  // Note: We don't use RCB's chatHistory - we store messages ourselves in session-utils.ts
 };
 
 
