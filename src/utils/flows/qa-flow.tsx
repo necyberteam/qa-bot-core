@@ -166,8 +166,6 @@ export const createQAFlow = ({
             headers['X-Session-ID'] = currentSessionId;
             headers['X-Query-ID'] = queryId;
           }
-          // TODO: The UKY endpoint does not accept a request with this header
-          // (causes CORS preflight failure). acting_user is also sent in body.
           if (actingUser) {
             headers['X-Acting-User'] = actingUser;
           }
