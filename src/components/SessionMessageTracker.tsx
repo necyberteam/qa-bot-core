@@ -32,11 +32,23 @@ const SessionMessageTracker: React.FC = () => {
     }
 
     const sender = message.sender;
-    const content = typeof message.content === 'string' ? message.content : '';
     const type = message.type || 'string';
+
+    // Only store messages with string content
+    // Skip JSX elements (like rating buttons) - they can't be meaningfully restored
+    if (typeof message.content !== 'string') {
+      return;
+    }
+
+    const content = message.content;
 
     // Skip rating option messages - they're not useful in history
     if (content.includes('rcb-options-container')) {
+      return;
+    }
+
+    // Skip empty messages
+    if (!content.trim()) {
       return;
     }
 

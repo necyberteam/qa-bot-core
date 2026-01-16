@@ -88,7 +88,8 @@ const HistoryButton: React.FC = () => {
     }
 
     // 1. Get the stored messages for this session from our localStorage
-    const storedMessages = getSessionMessages(sessionId);
+    // Filter out any empty messages (legacy data or edge cases)
+    const storedMessages = getSessionMessages(sessionId).filter(m => m.content?.trim());
     logger.history('Stored messages from our localStorage', {
       count: storedMessages.length,
       ids: storedMessages.map(m => m.id.slice(-8))
