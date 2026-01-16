@@ -18,14 +18,9 @@ import { addMessageToSession } from '../utils/session-utils';
  * Must be rendered inside ChatBotProvider.
  */
 const SessionMessageTracker: React.FC = () => {
-  const { getSessionId, isRestoring } = useSession();
+  const { getSessionId, isRestoring, setRestoring } = useSession();
 
   const handlePreInjectMessage = useCallback((event: Event) => {
-    // Skip tracking during session restore to avoid duplicating message IDs
-    if (isRestoring()) {
-      return;
-    }
-
     const rcbEvent = event as unknown as RcbPreInjectMessageEvent;
     // RcbPreInjectMessageEvent.data has shape: { message: Message }
     const message = rcbEvent.data?.message;
@@ -34,12 +29,25 @@ const SessionMessageTracker: React.FC = () => {
       return;
     }
 
-    const sessionId = getSessionId();
-    const content = typeof message.content === 'string' ? message.content : undefined;
     const sender = message.sender;
 
+    // If we see a USER message, we're no longer restoring - this is new input
+    // Clear the restoring flag so subsequent messages get tracked
+    if (sender === 'USER' && isRestoring()) {
+      setRestoring(false);
+    }
+
+    // Skip tracking during session restore to avoid duplicating message IDs
+    // (BOT messages during restore are duplicates of already-tracked messages)
+    if (isRestoring()) {
+      return;
+    }
+
+    const sessionId = getSessionId();
+    const content = typeof message.content === 'string' ? message.content : undefined;
+
     addMessageToSession(sessionId, message.id, content, sender);
-  }, [getSessionId, isRestoring]);
+  }, [getSessionId, isRestoring, setRestoring]);
 
   useEffect(() => {
     window.addEventListener('rcb-pre-inject-message', handlePreInjectMessage);

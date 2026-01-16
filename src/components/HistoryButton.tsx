@@ -115,11 +115,11 @@ const HistoryButton: React.FC = () => {
 
     // 4. Replace displayed messages with the session's messages
     // Set restoring flag to prevent re-tracking these messages as new
+    // Note: We keep the flag set until the component unmounts or next user action
+    // because RCB may inject messages asynchronously
     setRestoring(true);
     replaceMessages(sessionMessages);
     logger.history('replaceMessages called');
-    // Clear flag after a tick to allow RCB to finish injecting
-    setTimeout(() => setRestoring(false), 0);
 
     // 5. Fix markdown links in rendered messages (see fix-markdown-links.ts for explanation)
     fixMarkdownLinksInDom();
