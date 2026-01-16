@@ -266,7 +266,7 @@ The session ID persists across page refreshes, but clicking "New Chat" creates a
 
 ### Debug Logging
 
-The bot includes a lightweight logging utility that's disabled by default but can be enabled at runtime for troubleshooting. Logs are controlled via `localStorage` flags, making it easy to debug in any environment (including production) without rebuilding.
+The bot includes a lightweight logging utility that's disabled by default but can be enabled at runtime for troubleshooting. Logs are controlled via `localStorage`, making it easy to debug in any environment (including production) without rebuilding.
 
 **Enable debug logging:**
 ```javascript
@@ -278,12 +278,8 @@ localStorage.setItem('QA_BOT_DEBUG', 'true');
 localStorage.removeItem('QA_BOT_DEBUG');
 ```
 
-**Hide version info on load:**
-```javascript
-localStorage.setItem('QA_BOT_SHOW_VERSION', 'false');
-```
-
-When debug logging is enabled, you'll see styled console output for:
+When enabled, you'll see styled console output for:
+- Library version on load
 - Session lifecycle events (CREATED, RESET, RESTORED)
 - API requests being sent
 

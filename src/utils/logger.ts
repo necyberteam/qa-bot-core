@@ -2,17 +2,14 @@
  * Logger utility for QA Bot Core
  *
  * Controls debug logging via localStorage:
- * - QA_BOT_DEBUG: Set to 'true' to enable debug logging
- * - QA_BOT_SHOW_VERSION: Set to 'false' to disable version info (default: shown)
+ * - QA_BOT_DEBUG: Set to 'true' to enable debug logging and version info
  *
  * Usage for consumers:
- *   localStorage.setItem('QA_BOT_DEBUG', 'true');  // Enable debug logs
- *   localStorage.setItem('QA_BOT_SHOW_VERSION', 'false');  // Disable version info
+ *   localStorage.setItem('QA_BOT_DEBUG', 'true');  // Enable debug logs + version
  */
 
-// localStorage keys
+// localStorage key
 const DEBUG_KEY = 'QA_BOT_DEBUG';
-const VERSION_KEY = 'QA_BOT_SHOW_VERSION';
 
 // Check if running in browser with localStorage
 const hasLocalStorage = typeof window !== 'undefined' && window.localStorage;
@@ -22,12 +19,6 @@ let versionLogged = false;
 
 function isDebugEnabled(): boolean {
   return hasLocalStorage && localStorage.getItem(DEBUG_KEY) === 'true';
-}
-
-function shouldShowVersion(): boolean {
-  if (!hasLocalStorage) return false;
-  // Default to true (show version), unless explicitly disabled
-  return localStorage.getItem(VERSION_KEY) !== 'false';
 }
 
 // Styled prefixes for different log types
@@ -76,9 +67,9 @@ export const logger = {
     console.error(...args);
   },
 
-  // Version info - controlled separately, runs once per page load
+  // Version info - shown when debug enabled, runs once per page load
   version: (version: string) => {
-    if (!versionLogged && shouldShowVersion()) {
+    if (!versionLogged && isDebugEnabled()) {
       console.info(`@snf/qa-bot-core v${version}`);
       versionLogged = true;
     }
