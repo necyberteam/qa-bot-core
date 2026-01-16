@@ -39,7 +39,7 @@ export const getSessionMessagesStore = (): SessionMessagesStore => {
     const stored = localStorage.getItem(SESSION_MESSAGES_KEY);
     return stored ? JSON.parse(stored) : {};
   } catch {
-    console.error('[session-utils] Failed to parse session messages store');
+    // Silently fail - corrupted storage shouldn't break the app
     return {};
   }
 };
@@ -70,9 +70,6 @@ export const addMessageToSession = (
       startedAt: new Date().toISOString(),
       preview: ''
     };
-    console.log(`%c[Session]%c NEW session initialized in store`,
-      'background: #1a5b6e; color: white; padding: 2px 6px; border-radius: 3px;', '',
-      sessionId.slice(-12));
   }
 
   // Add message ID if not already present
@@ -88,9 +85,6 @@ export const addMessageToSession = (
     }
 
     saveSessionMessagesStore(store);
-    console.log(`%c[Session]%c Message tracked`,
-      'background: #1a5b6e; color: white; padding: 2px 6px; border-radius: 3px;', '',
-      { sessionId: sessionId.slice(-12), messageId: messageId.slice(-8), total: store[sessionId].messageIds.length });
   }
 };
 

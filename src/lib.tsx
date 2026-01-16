@@ -2,7 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import QABot from './components/QABot';
 import type { BotControllerHandle } from './config';
+import { logger } from './utils/logger';
 import './styles/index.css'; // QA Bot styles
+
+// Log version on library load (controlled by QA_BOT_SHOW_VERSION localStorage)
+logger.version('0.2.3');
 
 // Export the main component
 export { QABot };
@@ -156,7 +160,7 @@ ProgrammaticQABot.displayName = 'ProgrammaticQABot';
  */
 export function qaBot(config: QABotConfig): QABotInstance | undefined {
   if (!config.target || !(config.target instanceof HTMLElement)) {
-    console.error('QA Bot: A valid target DOM element is required');
+    logger.error('QA Bot: A valid target DOM element is required');
     return undefined;
   }
 

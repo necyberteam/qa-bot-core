@@ -77,20 +77,15 @@ const HistoryButton: React.FC = () => {
 
     // Don't reload if already on this session
     if (sessionId === currentSessionId) {
-      console.log('[HistoryButton] Already on this session, skipping');
       setIsOpen(false);
       return;
     }
 
-    console.log('[HistoryButton] Restoring session:', sessionId);
-
     // 1. Get the message IDs for this session from our store
     const sessionMessageIds = getSessionMessageIds(sessionId);
-    console.log('[HistoryButton] Session message IDs:', sessionMessageIds);
 
     // 2. Get all messages from RCB's history
     const allHistoryMessages = getHistoryMessages();
-    console.log('[HistoryButton] All history messages:', allHistoryMessages.length);
 
     // 3. Filter to only messages belonging to this session
     // Also skip rating option messages (thumbs up/down) - they're not useful in history
@@ -98,7 +93,6 @@ const HistoryButton: React.FC = () => {
       sessionMessageIds.includes(msg.id) &&
       !(typeof msg.content === 'string' && msg.content.includes('rcb-options-container'))
     );
-    console.log('[HistoryButton] Filtered session messages:', sessionMessages);
 
     // 4. Replace displayed messages with the session's messages
     replaceMessages(sessionMessages);

@@ -18,6 +18,7 @@ import useUpdateHeader from '../hooks/useUpdateHeader';
 import { createQAFlow } from '../utils/flows/qa-flow';
 import { generateSessionId } from '../utils/session-utils';
 import { SessionProvider } from '../contexts/SessionContext';
+import { logger } from '../utils/logger';
 import type { Settings, Flow } from 'react-chatbotify';
 import {
   fixedReactChatbotifySettings,
@@ -73,18 +74,12 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
   // Instance ID - stable across component lifecycle (for unique React keys)
   const instanceIdRef = useRef<string>(`bot_${Math.random().toString(36).substr(2, 9)}`);
 
-  // Session logging helper - styled console output for visibility
-  const logSession = (action: string, ...args: unknown[]) => {
-    const style = 'background: #1a5b6e; color: white; padding: 2px 6px; border-radius: 3px;';
-    console.log(`%c[Session]%c ${action}`, style, '', ...args);
-  };
-
   // Session management - use ref so session can change without recreating flow
   // Use lazy initializer to only generate once per mount
   const sessionIdRef = useRef<string | null>(null);
   if (sessionIdRef.current === null) {
     sessionIdRef.current = generateSessionId();
-    logSession('CREATED', sessionIdRef.current);
+    logger.session('CREATED', sessionIdRef.current);
   }
 
   // Track when we're resetting to prevent message replay
@@ -101,14 +96,14 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     const oldSessionId = sessionIdRef.current;
     isResettingRef.current = true;
     sessionIdRef.current = generateSessionId();
-    logSession('RESET', `${oldSessionId?.slice(-12)} -> ${sessionIdRef.current.slice(-12)}`);
+    logger.session('RESET', `${oldSessionId?.slice(-12)} -> ${sessionIdRef.current.slice(-12)}`);
   };
 
   // Function to set session ID (for restoring a previous session)
   const setSessionId = (sessionId: string) => {
     const oldSessionId = sessionIdRef.current;
     sessionIdRef.current = sessionId;
-    logSession('RESTORED', `${oldSessionId?.slice(-12)} -> ${sessionId.slice(-12)}`);
+    logger.session('RESTORED', `${oldSessionId?.slice(-12)} -> ${sessionId.slice(-12)}`);
   };
 
   // Function to clear the resetting flag (called after flow restart completes)
@@ -182,7 +177,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       buttons: [<NewChatButton key="new-chat-button" />]
     };
 
-    // Enable events for message tracking and debugging
+    // Enable events for message tracking
     base.event = {
       rcbPreInjectMessage: true,
       rcbPostInjectMessage: true,
@@ -190,7 +185,6 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       rcbChangePath: true,
       rcbToggleChatWindow: true
     };
-    console.log('[QABot] Settings with events:', base);
 
     return base;
   }, [primaryColor, secondaryColor, botName, logo, placeholder, errorMessage, embedded, tooltipText, internalIsLoggedIn, loginUrl, footerText, footerLink]);

@@ -3,6 +3,7 @@ import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { getProcessedText } from '../getProcessedText';
 import LoginButton from '../../components/LoginButton';
+import { logger } from '../logger';
 
 /**
  * Builds a plain text string for displaying response metadata.
@@ -123,14 +124,6 @@ export const createQAFlow = ({
                 headers['X-Query-ID'] = feedbackQueryId;
               }
 
-              // Log the session ID being sent to rating endpoint
-              const sessionStyle = 'background: #1a5b6e; color: white; padding: 2px 6px; border-radius: 3px;';
-              console.log(`%c[Session]%c SENT to RATING API`, sessionStyle, '', {
-                session_id: currentSessionId,
-                query_id: feedbackQueryId,
-                rating: isPositive ? 1 : 0
-              });
-
               await fetch(ratingEndpoint, {
                 method: 'POST',
                 headers,
@@ -141,7 +134,7 @@ export const createQAFlow = ({
                 })
               });
             } catch (error) {
-              console.error('Error sending feedback:', error);
+              logger.error('Error sending feedback:', error);
             }
           }
 
@@ -181,8 +174,7 @@ export const createQAFlow = ({
           }
 
           // Log the session ID being sent
-          const sessionStyle = 'background: #1a5b6e; color: white; padding: 2px 6px; border-radius: 3px;';
-          console.log(`%c[Session]%c SENT to API`, sessionStyle, '', {
+          logger.session('SENT to API', {
             session_id: currentSessionId,
             question_id: queryId,
             acting_user: actingUser || '(not set)'
@@ -199,26 +191,6 @@ export const createQAFlow = ({
           }
 
           const body = await response.json();
-
-          // Log full response for debugging metadata
-          const metaStyle = 'background: #6b21a8; color: white; padding: 2px 6px; border-radius: 3px;';
-          console.log(`%c[Response]%c Full API response body:`, metaStyle, '', body);
-
-          // Log if server echoes back session info
-          if (body.session_id || body.sessionId) {
-            console.log(`%c[Session]%c RECEIVED from API`, sessionStyle, '', {
-              session_id: body.session_id || body.sessionId
-            });
-          }
-
-          // Log metadata fields if present (access-agent format)
-          if (body.tools_used || body.confidence || body.metadata) {
-            console.log(`%c[Metadata]%c Response metadata:`, metaStyle, '', {
-              tools_used: body.tools_used || [],
-              confidence: body.confidence || null,
-              metadata: body.metadata || {}
-            });
-          }
 
           // Support different response formats
           const text = body.response || body.answer || body.text || body.message;
@@ -247,7 +219,7 @@ export const createQAFlow = ({
 
           return null;
         } catch (error) {
-          console.error('Error in Q&A flow:', error);
+          logger.error('Error in Q&A flow:', error);
           return "I apologize, but I'm having trouble processing your question. Please try again later.";
         }
       },
