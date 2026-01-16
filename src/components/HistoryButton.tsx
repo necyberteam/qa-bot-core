@@ -4,6 +4,7 @@ import { useMessages, useChatHistory } from 'react-chatbotify';
 import { getAllSessions, getSessionMessageIds } from '../utils/session-utils';
 import { fixMarkdownLinksInDom } from '../utils/fix-markdown-links';
 import { useSession } from '../contexts/SessionContext';
+import { logger } from '../utils/logger';
 
 /**
  * Format a date string for display
@@ -75,17 +76,31 @@ const HistoryButton: React.FC = () => {
   const handleSelectSession = (sessionId: string) => {
     const currentSessionId = getSessionId();
 
+    logger.history('RESTORE requested', {
+      targetSession: sessionId.slice(-12),
+      currentSession: currentSessionId?.slice(-12)
+    });
+
     // Don't reload if already on this session
     if (sessionId === currentSessionId) {
+      logger.history('RESTORE skipped - already on this session');
       setIsOpen(false);
       return;
     }
 
     // 1. Get the message IDs for this session from our store
     const sessionMessageIds = getSessionMessageIds(sessionId);
+    logger.history('Session message IDs from localStorage', {
+      count: sessionMessageIds.length,
+      ids: sessionMessageIds.map(id => id.slice(-8))
+    });
 
     // 2. Get all messages from RCB's history
     const allHistoryMessages = getHistoryMessages();
+    logger.history('RCB history messages', {
+      count: allHistoryMessages.length,
+      ids: allHistoryMessages.map(msg => msg.id?.slice(-8))
+    });
 
     // 3. Filter to only messages belonging to this session
     // Also skip rating option messages (thumbs up/down) - they're not useful in history
@@ -93,15 +108,21 @@ const HistoryButton: React.FC = () => {
       sessionMessageIds.includes(msg.id) &&
       !(typeof msg.content === 'string' && msg.content.includes('rcb-options-container'))
     );
+    logger.history('Filtered messages for session', {
+      count: sessionMessages.length,
+      ids: sessionMessages.map(msg => msg.id?.slice(-8))
+    });
 
     // 4. Replace displayed messages with the session's messages
     replaceMessages(sessionMessages);
+    logger.history('replaceMessages called');
 
     // 5. Fix markdown links in rendered messages (see fix-markdown-links.ts for explanation)
     fixMarkdownLinksInDom();
 
     // 6. Update the active session ID so new messages go to this session
     setSessionId(sessionId);
+    logger.history('Session ID updated', { newSession: sessionId.slice(-12) });
 
     setIsOpen(false);
   };

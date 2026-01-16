@@ -2,6 +2,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 const SESSION_MESSAGES_KEY = 'qa_bot_session_messages';
 
+// Maximum total messages across all sessions
+// Must stay under RCB's maxEntries (100) to ensure messages are still available when restoring
+const MAX_TOTAL_MESSAGES = 80;
+
 /**
  * Session message tracking structure
  */
@@ -34,9 +38,25 @@ export const getSessionMessagesStore = (): SessionMessagesStore => {
 };
 
 /**
- * Save the session messages store to localStorage
+ * Save the session messages store to localStorage, evicting oldest sessions if over message limit
  */
 const saveSessionMessagesStore = (store: SessionMessagesStore): void => {
+  // Count total messages across all sessions
+  const getTotalMessages = () =>
+    Object.values(store).reduce((sum, session) => sum + session.messageIds.length, 0);
+
+  // Evict oldest sessions until we're under the message limit
+  while (getTotalMessages() > MAX_TOTAL_MESSAGES && Object.keys(store).length > 1) {
+    // Find oldest session
+    const oldestSessionId = Object.entries(store)
+      .sort(([, a], [, b]) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime())[0]?.[0];
+
+    if (oldestSessionId) {
+      delete store[oldestSessionId];
+    } else {
+      break;
+    }
+  }
   localStorage.setItem(SESSION_MESSAGES_KEY, JSON.stringify(store));
 };
 
