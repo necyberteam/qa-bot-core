@@ -5,8 +5,15 @@ import { useSession } from '../contexts/SessionContext';
 import { addMessageToSession } from '../utils/session-utils';
 
 /**
- * Internal component that listens for RcbPreInjectMessageEvent
- * and tracks message IDs per session in localStorage.
+ * Invisible component that tags each chat message with its session ID.
+ *
+ * Problem: React-Chatbotify stores all messages in a flat list with no session
+ * boundaries. When a user has multiple conversations, there's no way to know
+ * which messages belong to which conversation.
+ *
+ * Solution: This component listens for every message injection and records
+ * "message X belongs to session Y" in localStorage. The history dropdown
+ * uses this mapping to show conversations separately.
  *
  * Must be rendered inside ChatBotProvider.
  */
