@@ -74,6 +74,11 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
   // Instance ID - stable across component lifecycle (for unique React keys)
   const instanceIdRef = useRef<string>(`bot_${Math.random().toString(36).substr(2, 9)}`);
 
+  // Log version on mount (when debug enabled)
+  useEffect(() => {
+    logger.version();
+  }, []);
+
   // Session management - use ref so session can change without recreating flow
   // Use lazy initializer to only generate once per mount
   const sessionIdRef = useRef<string | null>(null);

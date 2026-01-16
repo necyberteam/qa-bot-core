@@ -11,28 +11,25 @@
 // localStorage key
 const DEBUG_KEY = 'QA_BOT_DEBUG';
 
-// Check if running in browser with localStorage
-const hasLocalStorage = typeof window !== 'undefined' && window.localStorage;
-
-// Track if version has been logged this session (prevents duplicate logs)
-let versionLogged = false;
+// Library version - update this when releasing (see publishing.md)
+export const LIB_VERSION = '0.2.3';
 
 function isDebugEnabled(): boolean {
-  return hasLocalStorage && localStorage.getItem(DEBUG_KEY) === 'true';
+  return typeof localStorage !== 'undefined' && localStorage.getItem(DEBUG_KEY) === 'true';
 }
 
 // Styled prefixes for different log types
 const styles = {
   session: 'background: #1a5b6e; color: white; padding: 2px 6px; border-radius: 3px;',
-  meta: 'background: #6b5b95; color: white; padding: 2px 6px; border-radius: 3px;',
-  response: 'background: #2d6a4f; color: white; padding: 2px 6px; border-radius: 3px;',
+  version: 'background: #f59e0b; color: #000; padding: 2px 6px; border-radius: 3px 0 0 3px; font-weight: bold;',
+  versionNum: 'background: #fbbf24; color: #000; padding: 2px 6px; border-radius: 0 3px 3px 0;',
 };
 
 export const logger = {
-  // Debug logs - only when DEBUG enabled
-  debug: (...args: unknown[]) => {
+  // Log version - call once on component mount
+  version: () => {
     if (isDebugEnabled()) {
-      console.log(...args);
+      console.log(`%c QA Bot Core %c v${LIB_VERSION} `, styles.version, styles.versionNum);
     }
   },
 
@@ -43,35 +40,13 @@ export const logger = {
     }
   },
 
-  // Response/API logging - styled, only when DEBUG enabled
-  response: (label: string, ...args: unknown[]) => {
-    if (isDebugEnabled()) {
-      console.log(`%c[Response]%c ${label}`, styles.response, '', ...args);
-    }
-  },
-
-  // Metadata logging - styled, only when DEBUG enabled
-  meta: (label: string, ...args: unknown[]) => {
-    if (isDebugEnabled()) {
-      console.log(`%c[Metadata]%c ${label}`, styles.meta, '', ...args);
-    }
-  },
-
-  // Warnings - always show (these indicate potential issues)
+  // Warnings - always show
   warn: (...args: unknown[]) => {
     console.warn(...args);
   },
 
-  // Errors - always show (these are actual problems)
+  // Errors - always show
   error: (...args: unknown[]) => {
     console.error(...args);
-  },
-
-  // Version info - shown when debug enabled, runs once per page load
-  version: (version: string) => {
-    if (!versionLogged && isDebugEnabled()) {
-      console.info(`@snf/qa-bot-core v${version}`);
-      versionLogged = true;
-    }
   }
 };

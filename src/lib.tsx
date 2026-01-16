@@ -5,9 +5,6 @@ import type { BotControllerHandle } from './config';
 import { logger } from './utils/logger';
 import './styles/index.css'; // QA Bot styles
 
-// Log version on library load (controlled by QA_BOT_SHOW_VERSION localStorage)
-logger.version('0.2.3');
-
 // Export the main component
 export { QABot };
 

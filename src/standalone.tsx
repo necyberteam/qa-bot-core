@@ -6,10 +6,6 @@
  */
 
 import qaBot from './lib';
-import { logger } from './utils/logger';
-
-// Log version on standalone load (controlled by QA_BOT_SHOW_VERSION localStorage)
-logger.version('0.2.3');
 
 // Re-export the programmatic API as the default export
 export default qaBot;

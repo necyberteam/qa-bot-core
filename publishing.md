@@ -88,8 +88,9 @@ git pull origin main
 # Check existing versions before updating
 git tag -l "v*"
 
-# Update version in package.json (manually edit)
-# Example: "0.1.1"
+# Update version in TWO places (manually edit):
+# 1. package.json - Example: "0.1.1"
+# 2. src/utils/logger.ts - Update LIB_VERSION constant to match
 # IMPORTANT: Choose a NEW version that doesn't have an existing git tag
 # This is necessary for our CDN links to work correctly
 
@@ -236,6 +237,7 @@ This workflow is designed to be clear and actionable for AI assistants. Key poin
 
 - **Version bump timing**: Always happens AFTER PR merge, on main branch
 - **Feature PRs**: Should NOT include version bumps - focus on feature changes only
+- **Two version locations**: Update both `package.json` AND `src/utils/logger.ts` (LIB_VERSION constant)
 - Always check existing git tags before choosing a version number
 - Build commands are: `npm run build:lib && npm run build`
 - The process maintains both npm packages and CDN links
