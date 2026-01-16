@@ -18,9 +18,14 @@ import { addMessageToSession } from '../utils/session-utils';
  * Must be rendered inside ChatBotProvider.
  */
 const SessionMessageTracker: React.FC = () => {
-  const { getSessionId } = useSession();
+  const { getSessionId, isRestoring } = useSession();
 
   const handlePreInjectMessage = useCallback((event: Event) => {
+    // Skip tracking during session restore to avoid duplicating message IDs
+    if (isRestoring()) {
+      return;
+    }
+
     const rcbEvent = event as unknown as RcbPreInjectMessageEvent;
     // RcbPreInjectMessageEvent.data has shape: { message: Message }
     const message = rcbEvent.data?.message;
@@ -34,7 +39,7 @@ const SessionMessageTracker: React.FC = () => {
     const sender = message.sender;
 
     addMessageToSession(sessionId, message.id, content, sender);
-  }, [getSessionId]);
+  }, [getSessionId, isRestoring]);
 
   useEffect(() => {
     window.addEventListener('rcb-pre-inject-message', handlePreInjectMessage);

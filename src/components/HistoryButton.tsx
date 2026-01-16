@@ -42,7 +42,7 @@ const HistoryButton: React.FC = () => {
 
   const { replaceMessages } = useMessages();
   const { getHistoryMessages } = useChatHistory();
-  const { setSessionId, getSessionId } = useSession();
+  const { setSessionId, getSessionId, setRestoring } = useSession();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -114,8 +114,12 @@ const HistoryButton: React.FC = () => {
     });
 
     // 4. Replace displayed messages with the session's messages
+    // Set restoring flag to prevent re-tracking these messages as new
+    setRestoring(true);
     replaceMessages(sessionMessages);
     logger.history('replaceMessages called');
+    // Clear flag after a tick to allow RCB to finish injecting
+    setTimeout(() => setRestoring(false), 0);
 
     // 5. Fix markdown links in rendered messages (see fix-markdown-links.ts for explanation)
     fixMarkdownLinksInDom();

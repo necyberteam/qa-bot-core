@@ -1,6 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from './logger';
 
 const SESSION_MESSAGES_KEY = 'qa_bot_session_messages';
+const RCB_HISTORY_KEY = 'qa_bot_rcb_history';
 
 // Maximum total messages across all sessions
 // Must stay under RCB's maxEntries (100) to ensure messages are still available when restoring
@@ -73,28 +75,53 @@ export const addMessageToSession = (
   const store = getSessionMessagesStore();
 
   // Initialize session if it doesn't exist
-  if (!store[sessionId]) {
+  const isNewSession = !store[sessionId];
+  if (isNewSession) {
     store[sessionId] = {
       messageIds: [],
       startedAt: new Date().toISOString(),
       preview: ''
     };
+    logger.history('NEW session created', { sessionId: sessionId.slice(-12) });
   }
 
   // Add message ID if not already present
-  if (!store[sessionId].messageIds.includes(messageId)) {
-    store[sessionId].messageIds.push(messageId);
-
-    // Set preview from first user message
-    if (!store[sessionId].preview && sender?.toLowerCase() === 'user' && messageContent) {
-      const preview = typeof messageContent === 'string'
-        ? messageContent.slice(0, 50) + (messageContent.length > 50 ? '...' : '')
-        : '[Message]';
-      store[sessionId].preview = preview;
-    }
-
-    saveSessionMessagesStore(store);
+  const isDuplicate = store[sessionId].messageIds.includes(messageId);
+  if (isDuplicate) {
+    logger.history('DUPLICATE message skipped', {
+      sessionId: sessionId.slice(-12),
+      messageId: messageId.slice(-8),
+      sender
+    });
+    return;
   }
+
+  store[sessionId].messageIds.push(messageId);
+  logger.history('MESSAGE added', {
+    sessionId: sessionId.slice(-12),
+    messageId: messageId.slice(-8),
+    sender,
+    totalInSession: store[sessionId].messageIds.length
+  });
+
+  // Set preview from first user message
+  if (!store[sessionId].preview && sender?.toLowerCase() === 'user' && messageContent) {
+    const preview = typeof messageContent === 'string'
+      ? messageContent.slice(0, 50) + (messageContent.length > 50 ? '...' : '')
+      : '[Message]';
+    store[sessionId].preview = preview;
+  }
+
+  saveSessionMessagesStore(store);
+
+  // Log localStorage state after save
+  const rcbHistory = localStorage.getItem(RCB_HISTORY_KEY);
+  const rcbMessageCount = rcbHistory ? JSON.parse(rcbHistory).length : 0;
+  logger.history('STORAGE state', {
+    ourSessions: Object.keys(store).length,
+    ourTotalMessages: Object.values(store).reduce((sum, s) => sum + s.messageIds.length, 0),
+    rcbMessages: rcbMessageCount
+  });
 };
 
 /**
