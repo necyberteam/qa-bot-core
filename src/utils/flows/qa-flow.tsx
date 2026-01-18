@@ -7,6 +7,32 @@ import { logger } from '../logger';
 import type { QABotAnalyticsEvent } from '../../config';
 
 /**
+ * Configuration for creating a Q&A flow
+ */
+export interface CreateQAFlowParams {
+  /** Q&A API endpoint (required) */
+  endpoint: string;
+  /** Rating API endpoint (optional) */
+  ratingEndpoint?: string;
+  /** API key for authentication (optional) */
+  apiKey?: string;
+  /** Function that returns current session ID */
+  sessionId: () => string | null;
+  /** Function that returns whether we're currently resetting */
+  isResetting?: () => boolean;
+  /** Whether the user is logged in (required) */
+  isLoggedIn: boolean;
+  /** Allow Q&A without login (default: false) */
+  allowAnonAccess?: boolean;
+  /** Login URL to redirect to (optional) */
+  loginUrl?: string;
+  /** The acting user's identifier (optional) */
+  actingUser?: string;
+  /** Callback for analytics events (optional) */
+  onAnalyticsEvent?: (event: QABotAnalyticsEvent) => void;
+}
+
+/**
  * Builds a plain text string for displaying response metadata.
  * Returns empty string if no metadata is present.
  */
@@ -43,19 +69,6 @@ function buildMetadataText(body: {
 /**
  * Creates the basic Q&A conversation flow
  * Handles questions, responses, and optional ratings
- *
- * @param {Object} params Configuration
- * @param {string} params.endpoint Q&A API endpoint (required)
- * @param {string} params.ratingEndpoint Rating API endpoint (optional)
- * @param {string} params.apiKey API key for authentication (optional)
- * @param {Function} params.sessionId Function that returns current session ID
- * @param {Function} params.isResetting Function that returns whether we're currently resetting
- * @param {boolean} params.isLoggedIn Whether the user is logged in (required)
- * @param {boolean} params.allowAnonAccess Allow Q&A without login (default: false)
- * @param {string} params.loginUrl Login URL to redirect to (optional)
- * @param {string} params.actingUser The acting user's identifier (optional)
- * @param {Function} params.onAnalyticsEvent Callback for analytics events (optional)
- * @returns {Object} Q&A flow configuration
  */
 export const createQAFlow = ({
   endpoint,
@@ -68,18 +81,7 @@ export const createQAFlow = ({
   loginUrl = '/login',
   actingUser,
   onAnalyticsEvent
-}: {
-  endpoint: string;
-  ratingEndpoint?: string;
-  apiKey?: string;
-  sessionId: () => string | null;
-  isResetting?: () => boolean;
-  isLoggedIn: boolean;
-  allowAnonAccess?: boolean;
-  loginUrl?: string;
-  actingUser?: string;
-  onAnalyticsEvent?: (event: QABotAnalyticsEvent) => void;
-}) => {
+}: CreateQAFlowParams) => {
   // Helper to track analytics events
   const trackEvent = (event: Omit<QABotAnalyticsEvent, 'timestamp'>) => {
     if (onAnalyticsEvent) {
