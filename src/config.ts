@@ -1,5 +1,32 @@
 import type { Settings, Flow } from 'react-chatbotify';
 
+/**
+ * Analytics event types fired by qa-bot-core
+ */
+export type QABotAnalyticsEventType =
+  | 'qa_bot_opened'
+  | 'qa_bot_closed'
+  | 'qa_new_chat_started'
+  | 'qa_question_asked'
+  | 'qa_response_received'
+  | 'qa_response_error'
+  | 'qa_response_rated';
+
+/**
+ * Analytics event payload
+ */
+export interface QABotAnalyticsEvent {
+  type: QABotAnalyticsEventType;
+  timestamp: number;
+  sessionId?: string;
+  queryId?: string;
+  questionLength?: number;
+  responseLength?: number;
+  hasMetadata?: boolean;
+  rating?: 'helpful' | 'not_helpful';
+  errorType?: string;
+}
+
 export interface QABotProps {
   apiKey: string;
   qaEndpoint: string;
@@ -48,6 +75,17 @@ export interface QABotProps {
    * These steps will be merged into the flow object.
    */
   customFlow?: Flow;
+
+  /**
+   * Callback fired when trackable events occur.
+   * Use this to wire up analytics (GTM, GA4, etc.)
+   *
+   * @example
+   * onAnalyticsEvent={(event) => {
+   *   window.dataLayer?.push({ event: event.type, ...event });
+   * }}
+   */
+  onAnalyticsEvent?: (event: QABotAnalyticsEvent) => void;
 }
 
 /**

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getProcessedText } from '../getProcessedText';
 import LoginButton from '../../components/LoginButton';
 import { logger } from '../logger';
+import type { QABotAnalyticsEvent } from '../../config';
 
 /**
  * Builds a plain text string for displaying response metadata.
@@ -53,6 +54,7 @@ function buildMetadataText(body: {
  * @param {boolean} params.allowAnonAccess Allow Q&A without login (default: false)
  * @param {string} params.loginUrl Login URL to redirect to (optional)
  * @param {string} params.actingUser The acting user's identifier (optional)
+ * @param {Function} params.onAnalyticsEvent Callback for analytics events (optional)
  * @returns {Object} Q&A flow configuration
  */
 export const createQAFlow = ({
@@ -64,8 +66,30 @@ export const createQAFlow = ({
   isLoggedIn,
   allowAnonAccess = false,
   loginUrl = '/login',
-  actingUser
+  actingUser,
+  onAnalyticsEvent
+}: {
+  endpoint: string;
+  ratingEndpoint?: string;
+  apiKey?: string;
+  sessionId: () => string | null;
+  isResetting?: () => boolean;
+  isLoggedIn: boolean;
+  allowAnonAccess?: boolean;
+  loginUrl?: string;
+  actingUser?: string;
+  onAnalyticsEvent?: (event: QABotAnalyticsEvent) => void;
 }) => {
+  // Helper to track analytics events
+  const trackEvent = (event: Omit<QABotAnalyticsEvent, 'timestamp'>) => {
+    if (onAnalyticsEvent) {
+      onAnalyticsEvent({
+        ...event,
+        timestamp: Date.now(),
+        sessionId: event.sessionId ?? getSessionId() ?? undefined
+      });
+    }
+  };
   // Gate Q&A when user is logged out (unless allowAnonAccess is true)
   if (isLoggedIn === false && !allowAnonAccess) {
     return {
@@ -133,6 +157,13 @@ export const createQAFlow = ({
                   rating: isPositive ? 1 : 0
                 })
               });
+
+              // Track rating event
+              trackEvent({
+                type: 'qa_response_rated',
+                queryId: feedbackQueryId,
+                rating: isPositive ? 'helpful' : 'not_helpful'
+              });
             } catch (error) {
               logger.error('Error sending feedback:', error);
             }
@@ -145,6 +176,13 @@ export const createQAFlow = ({
         try {
           const queryId = uuidv4();
           feedbackQueryId = queryId;
+
+          // Track question asked
+          trackEvent({
+            type: 'qa_question_asked',
+            queryId,
+            questionLength: userInput.length
+          });
 
           const headers = {
             'Content-Type': 'application/json'
@@ -209,6 +247,14 @@ export const createQAFlow = ({
           // Inject the response
           await chatState.injectMessage(fullContent);
 
+          // Track response received
+          trackEvent({
+            type: 'qa_response_received',
+            queryId,
+            responseLength: text.length,
+            hasMetadata: !!metadataText
+          });
+
           // Mark that we've shown a response
           hasShownResponse = true;
 
@@ -220,6 +266,14 @@ export const createQAFlow = ({
           return null;
         } catch (error) {
           logger.error('Error in Q&A flow:', error);
+
+          // Track error event
+          trackEvent({
+            type: 'qa_response_error',
+            queryId: feedbackQueryId ?? undefined,
+            errorType: error instanceof Error ? error.message : 'unknown'
+          });
+
           return "I apologize, but I'm having trouble processing your question. Please try again later.";
         }
       },

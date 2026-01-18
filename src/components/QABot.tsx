@@ -18,6 +18,7 @@ import useUpdateHeader from '../hooks/useUpdateHeader';
 import { createQAFlow } from '../utils/flows/qa-flow';
 import { generateSessionId } from '../utils/session-utils';
 import { SessionProvider } from '../contexts/SessionContext';
+import { AnalyticsProvider } from '../contexts/AnalyticsContext';
 import { logger } from '../utils/logger';
 import type { Settings, Flow } from 'react-chatbotify';
 import {
@@ -68,7 +69,10 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     loginUrl,
 
     // Custom flow extension
-    customFlow
+    customFlow,
+
+    // Analytics callback
+    onAnalyticsEvent
   } = props;
 
   // Instance ID - stable across component lifecycle (for unique React keys)
@@ -217,7 +221,8 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       isLoggedIn: internalIsLoggedIn,
       allowAnonAccess: allowAnonAccess,
       loginUrl: loginUrl || defaultValues.loginUrl,
-      actingUser: actingUser
+      actingUser: actingUser,
+      onAnalyticsEvent: onAnalyticsEvent
     });
 
     // Configure start step
@@ -233,7 +238,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       ...qaFlow,
       ...(customFlow || {})
     };
-  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser]);
+  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, onAnalyticsEvent]);
 
   // default react-chatbotify plugins
   const plugins = useMemo(() => {
@@ -246,10 +251,17 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
 
   // Listen for chat window toggle events
   useEffect(() => {
-    if (!embedded && onOpenChange) {
+    if (!embedded) {
       const handleChatWindowToggle = (event: any) => {
         const newOpenState = event.data.newState;
-        onOpenChange(newOpenState);
+        onOpenChange?.(newOpenState);
+
+        // Track open/close analytics events
+        onAnalyticsEvent?.({
+          type: newOpenState ? 'qa_bot_opened' : 'qa_bot_closed',
+          timestamp: Date.now(),
+          sessionId: sessionIdRef.current ?? undefined
+        });
       };
       window.addEventListener('rcb-toggle-chat-window', handleChatWindowToggle);
 
@@ -257,7 +269,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
         window.removeEventListener('rcb-toggle-chat-window', handleChatWindowToggle);
       };
     }
-  }, [embedded, onOpenChange]);
+  }, [embedded, onOpenChange, onAnalyticsEvent]);
 
   return (
     <div
@@ -267,6 +279,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       aria-label={botName || defaultValues.botName}
     >
       <SessionProvider getSessionId={() => sessionIdRef.current!} setSessionId={setSessionId} resetSession={resetSession} clearResettingFlag={clearResettingFlag}>
+        <AnalyticsProvider onAnalyticsEvent={onAnalyticsEvent} getSessionId={() => sessionIdRef.current}>
         <ChatBotProvider>
           <div>
             <SessionMessageTracker />
@@ -297,6 +310,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
             </div>
           </div>
         </ChatBotProvider>
+        </AnalyticsProvider>
       </SessionProvider>
     </div>
   );

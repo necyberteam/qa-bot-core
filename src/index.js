@@ -1,10 +1,14 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import QABot from './components/QABot';
 import reportWebVitals from './reportWebVitals';
 
 function ExampleApp() {
+  // Analytics event handler for testing
+  const handleAnalyticsEvent = useCallback((event) => {
+    console.log('[Analytics]', event.type, event);
+  }, []);
   const [userLoggedIn, setUserLoggedIn] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [embedded, setEmbedded] = useState(false);
@@ -157,6 +161,7 @@ function ExampleApp() {
                 onOpenChange={setChatOpen}
                 embedded={true}
                 actingUser="demo-user@access-ci.org"
+                onAnalyticsEvent={handleAnalyticsEvent}
               />
             </div>
           ) : (
@@ -188,6 +193,7 @@ function ExampleApp() {
           onOpenChange={setChatOpen}
           embedded={false}
           actingUser="demo-user@access-ci.org"
+          onAnalyticsEvent={handleAnalyticsEvent}
         />
       )}
     </div>
