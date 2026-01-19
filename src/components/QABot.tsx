@@ -16,7 +16,11 @@ import useFocusableSendButton from '../hooks/useFocusableSendButton';
 import useKeyboardNavigation from '../hooks/useKeyboardNavigation';
 import useUpdateHeader from '../hooks/useUpdateHeader';
 import { createQAFlow } from '../utils/flows/qa-flow';
-import { generateSessionId } from '../utils/session-utils';
+import {
+  generateSessionId,
+  getSessionMessageCount,
+  computeSessionDurationMs
+} from '../utils/session-utils';
 import { SessionProvider } from '../contexts/SessionContext';
 import { AnalyticsProvider } from '../contexts/AnalyticsContext';
 import { logger } from '../utils/logger';
@@ -256,12 +260,26 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
         const newOpenState = event.data.newState;
         onOpenChange?.(newOpenState);
 
+        const currentSessionId = sessionIdRef.current;
+
         // Track open/close analytics events
-        onAnalyticsEvent?.({
-          type: newOpenState ? 'qa_bot_opened' : 'qa_bot_closed',
-          timestamp: Date.now(),
-          sessionId: sessionIdRef.current ?? undefined
-        });
+        if (newOpenState) {
+          // Chat opened
+          onAnalyticsEvent?.({
+            type: 'qa_bot_opened',
+            timestamp: Date.now(),
+            sessionId: currentSessionId ?? undefined
+          });
+        } else {
+          // Chat closed - include session metrics
+          onAnalyticsEvent?.({
+            type: 'qa_bot_closed',
+            timestamp: Date.now(),
+            sessionId: currentSessionId ?? undefined,
+            messageCount: currentSessionId ? getSessionMessageCount(currentSessionId) : 0,
+            durationMs: currentSessionId ? computeSessionDurationMs(currentSessionId) : 0
+          });
+        }
       };
       window.addEventListener('rcb-toggle-chat-window', handleChatWindowToggle);
 

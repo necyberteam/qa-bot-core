@@ -94,6 +94,9 @@ export const createQAFlow = ({
   };
   // Gate Q&A when user is logged out (unless allowAnonAccess is true)
   if (isLoggedIn === false && !allowAnonAccess) {
+    // Track that login prompt was shown
+    trackEvent({ type: 'qa_login_prompt_shown' });
+
     return {
       qa_loop: {
         message: "To ask questions, please log in first.",
@@ -220,11 +223,17 @@ export const createQAFlow = ({
             acting_user: actingUser || '(not set)'
           });
 
+          // Capture timestamp before fetch for response time calculation
+          const requestStartTime = Date.now();
+
           const response = await fetch(endpoint, {
             method: 'POST',
             headers,
             body: JSON.stringify(requestBody)
           });
+
+          // Calculate response time (network + server processing)
+          const responseTimeMs = Date.now() - requestStartTime;
 
           if (!response.ok) {
             throw new Error(`API returned ${response.status}`);
@@ -253,6 +262,8 @@ export const createQAFlow = ({
           trackEvent({
             type: 'qa_response_received',
             queryId,
+            responseTimeMs,
+            success: true,
             responseLength: text.length,
             hasMetadata: !!metadataText
           });

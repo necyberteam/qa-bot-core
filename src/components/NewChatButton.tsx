@@ -3,17 +3,25 @@ import { useFlow, useTextArea, useMessages } from 'react-chatbotify';
 import RefreshIcon from './icons/RefreshIcon';
 import { useSession } from '../contexts/SessionContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
+import { getSessionMessageCount } from '../utils/session-utils';
 
 const NewChatButton: React.FC = () => {
   const { restartFlow } = useFlow();
   const { setTextAreaValue } = useTextArea();
   const { messages } = useMessages();
-  const { resetSession, clearResettingFlag } = useSession();
+  const { getSessionId, resetSession, clearResettingFlag } = useSession();
   const { trackEvent } = useAnalytics();
 
   const handleNewChat = async () => {
-    // Track new chat event before reset (captures the old session being ended)
-    trackEvent({ type: 'qa_new_chat_started' });
+    // Get message count from old session before reset
+    const currentSessionId = getSessionId();
+    const previousMessageCount = currentSessionId ? getSessionMessageCount(currentSessionId) : 0;
+
+    // Track new chat event with previous session's message count
+    trackEvent({
+      type: 'qa_new_chat_started',
+      previousMessageCount
+    });
 
     // Reset session ID (sets resetting flag to true)
     resetSession();

@@ -10,21 +10,42 @@ export type QABotAnalyticsEventType =
   | 'qa_question_asked'
   | 'qa_response_received'
   | 'qa_response_error'
-  | 'qa_response_rated';
+  | 'qa_response_rated'
+  | 'qa_login_prompt_shown';
 
 /**
  * Analytics event payload
+ * Fields are populated based on event type:
+ * - qa_bot_opened: sessionId
+ * - qa_bot_closed: sessionId, messageCount, durationMs
+ * - qa_new_chat_started: sessionId, previousMessageCount
+ * - qa_question_asked: sessionId, queryId, questionLength
+ * - qa_response_received: sessionId, queryId, responseTimeMs, success, responseLength, hasMetadata
+ * - qa_response_error: sessionId, queryId, errorType
+ * - qa_response_rated: sessionId, queryId, rating
+ * - qa_login_prompt_shown: sessionId
  */
 export interface QABotAnalyticsEvent {
   type: QABotAnalyticsEventType;
   timestamp: number;
   sessionId?: string;
   queryId?: string;
+  // qa_question_asked
   questionLength?: number;
+  // qa_response_received
+  responseTimeMs?: number;
+  success?: boolean;
   responseLength?: number;
   hasMetadata?: boolean;
-  rating?: 'helpful' | 'not_helpful';
+  // qa_response_error
   errorType?: string;
+  // qa_response_rated
+  rating?: 'helpful' | 'not_helpful';
+  // qa_bot_closed
+  messageCount?: number;
+  durationMs?: number;
+  // qa_new_chat_started
+  previousMessageCount?: number;
 }
 
 export interface QABotProps {
