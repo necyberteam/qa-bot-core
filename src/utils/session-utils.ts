@@ -124,10 +124,33 @@ export const addMessageToSession = (
     totalInSession: store[sessionId].messages.length
   });
 
-  // Set preview from first user message
-  if (!store[sessionId].preview && sender.toLowerCase() === 'user' && messageContent) {
-    const preview = messageContent.slice(0, 50) + (messageContent.length > 50 ? '...' : '');
-    store[sessionId].preview = preview;
+  // Compute preview from first substantial bot answer
+  // Bot answers are consistently long, while greetings/prompts are short
+  // This avoids ambiguity between user-typed questions vs option-click messages
+  // Fall back to first user message if no bot answer exists yet
+  const messages = store[sessionId].messages;
+
+  // Find first bot message that looks like an actual answer (>=100 chars)
+  const MIN_BOT_ANSWER_LENGTH = 100;
+  const botAnswer = messages.find(m =>
+    m.sender.toLowerCase() === 'bot' &&
+    m.content?.trim() &&
+    m.content.length >= MIN_BOT_ANSWER_LENGTH
+  );
+
+  if (botAnswer) {
+    // Use truncated bot answer as preview
+    const content = botAnswer.content;
+    store[sessionId].preview = content.slice(0, 50) + (content.length > 50 ? '...' : '');
+  } else {
+    // Fall back to first user message until we have a bot answer
+    const firstUserMessage = messages.find(m =>
+      m.sender.toLowerCase() === 'user' && m.content?.trim()
+    );
+    if (firstUserMessage && !store[sessionId].preview) {
+      const content = firstUserMessage.content;
+      store[sessionId].preview = content.slice(0, 50) + (content.length > 50 ? '...' : '');
+    }
   }
 
   saveSessionMessagesStore(store);
