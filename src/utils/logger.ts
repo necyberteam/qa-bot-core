@@ -12,7 +12,7 @@
 const DEBUG_KEY = 'QA_BOT_DEBUG';
 
 // Library version - update this when releasing (see publishing.md)
-export const LIB_VERSION = '0.2.7';
+export const LIB_VERSION = '0.2.8';
 
 function isDebugEnabled(): boolean {
   return typeof localStorage !== 'undefined' && localStorage.getItem(DEBUG_KEY) === 'true';
