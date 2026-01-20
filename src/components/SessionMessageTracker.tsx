@@ -3,6 +3,7 @@ import { useEffect, useCallback } from 'react';
 import { RcbPreInjectMessageEvent } from 'react-chatbotify';
 import { useSession } from '../contexts/SessionContext';
 import { addMessageToSession } from '../utils/session-utils';
+import { extractTextFromJsx } from '../utils/jsx-text-extractor';
 
 /**
  * Invisible component that stores each chat message with its session ID.
@@ -15,6 +16,10 @@ import { addMessageToSession } from '../utils/session-utils';
  * Solution: This component listens for every message injection and stores
  * the full message content in our own localStorage. The history dropdown
  * restores sessions directly from our storage, not RCB's.
+ *
+ * Note: react-chatbotify wraps all messages (including plain strings) in JSX
+ * before firing events. We use extractTextFromJsx() to recover the text content
+ * from bot messages so they appear in restored sessions.
  *
  * Deduplication is handled by session-utils (checks message ID).
  *
@@ -34,20 +39,21 @@ const SessionMessageTracker: React.FC = () => {
     const sender = message.sender;
     const type = message.type || 'string';
 
-    // Only store messages with string content
-    // Skip JSX elements (like rating buttons) - they can't be meaningfully restored
-    if (typeof message.content !== 'string') {
-      return;
+    // Extract text content from message
+    // react-chatbotify wraps bot messages in JSX, so we need to extract the text
+    let content: string;
+    if (typeof message.content === 'string') {
+      content = message.content;
+    } else {
+      content = extractTextFromJsx(message.content);
     }
-
-    const content = message.content;
 
     // Skip rating option messages - they're not useful in history
     if (content.includes('rcb-options-container')) {
       return;
     }
 
-    // Skip empty messages
+    // Skip empty messages (e.g., file uploads, rating buttons with no text)
     if (!content.trim()) {
       return;
     }
