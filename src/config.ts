@@ -1,5 +1,53 @@
 import type { Settings, Flow } from 'react-chatbotify';
 
+/**
+ * Analytics event types fired by qa-bot-core
+ */
+export type QABotAnalyticsEventType =
+  | 'qa_bot_opened'
+  | 'qa_bot_closed'
+  | 'qa_new_chat_started'
+  | 'qa_question_asked'
+  | 'qa_response_received'
+  | 'qa_response_error'
+  | 'qa_response_rated'
+  | 'qa_login_prompt_shown';
+
+/**
+ * Analytics event payload
+ * Fields are populated based on event type:
+ * - qa_bot_opened: sessionId
+ * - qa_bot_closed: sessionId, messageCount, durationMs
+ * - qa_new_chat_started: sessionId, previousMessageCount
+ * - qa_question_asked: sessionId, queryId, questionLength
+ * - qa_response_received: sessionId, queryId, responseTimeMs, success, responseLength, hasMetadata
+ * - qa_response_error: sessionId, queryId, errorType
+ * - qa_response_rated: sessionId, queryId, rating
+ * - qa_login_prompt_shown: sessionId
+ */
+export interface QABotAnalyticsEvent {
+  type: QABotAnalyticsEventType;
+  timestamp: number;
+  sessionId?: string;
+  queryId?: string;
+  // qa_question_asked
+  questionLength?: number;
+  // qa_response_received
+  responseTimeMs?: number;
+  success?: boolean;
+  responseLength?: number;
+  hasMetadata?: boolean;
+  // qa_response_error
+  errorType?: string;
+  // qa_response_rated
+  rating?: 'helpful' | 'not_helpful';
+  // qa_bot_closed
+  messageCount?: number;
+  durationMs?: number;
+  // qa_new_chat_started
+  previousMessageCount?: number;
+}
+
 export interface QABotProps {
   apiKey: string;
   qaEndpoint: string;
@@ -36,11 +84,29 @@ export interface QABotProps {
   allowAnonAccess?: boolean;
 
   /**
+   * The acting user's identifier (e.g., email or username).
+   * - Sent to the backend in both headers (X-Acting-User) and body (acting_user)
+   * - Optional: if not provided, requests will be anonymous
+   */
+  actingUser?: string;
+
+  /**
    * Custom flow steps to merge with the built-in Q&A flow.
    * Use this to add ticket creation flows, feedback flows, etc.
    * These steps will be merged into the flow object.
    */
   customFlow?: Flow;
+
+  /**
+   * Callback fired when trackable events occur.
+   * Use this to wire up analytics (GTM, GA4, etc.)
+   *
+   * @example
+   * onAnalyticsEvent={(event) => {
+   *   window.dataLayer?.push({ event: event.type, ...event });
+   * }}
+   */
+  onAnalyticsEvent?: (event: QABotAnalyticsEvent) => void;
 }
 
 /**
@@ -110,6 +176,7 @@ export const fixedReactChatbotifySettings: Settings = {
   audio: { disabled: true },
   emoji: { disabled: true },
   fileAttachment: { disabled: true }
+  // Note: We don't use RCB's chatHistory - we store messages ourselves in session-utils.ts
 };
 
 

@@ -352,4 +352,25 @@ code {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 }
 
+/* Response metadata collapsible section */
+.response-metadata {
+  margin-top: 12px;
+  font-size: 0.85em;
+  color: #666;
+}
 
+.response-metadata summary {
+  cursor: pointer;
+  color: #888;
+}
+
+.response-metadata summary:hover {
+  color: #555;
+}
+
+.response-metadata .metadata-content {
+  margin-top: 8px;
+  padding: 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+}

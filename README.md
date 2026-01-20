@@ -143,6 +143,7 @@ bot.destroy();
 | `footerText` | string | ❌ | Footer text |
 | `footerLink` | string | ❌ | Footer link URL |
 | `customFlow` | Flow | ❌ | Custom flow steps to merge with built-in Q&A flow (see Custom Flows section) |
+| `onAnalyticsEvent` | function | ❌ | Analytics callback: `(event: QABotAnalyticsEvent) => void` |
 
 ## Features
 
@@ -351,6 +352,68 @@ The session ID persists across page refreshes, but clicking "New Chat" creates a
 - Starting a new topic without the bot referencing previous context
 - Resetting conversation state
 - Allowing users to have multiple distinct conversations
+
+### Analytics Events
+
+The bot fires analytics events via an optional callback prop, allowing you to wire up GTM, GA4, or any analytics provider without adding dependencies to the library.
+
+```jsx
+<QABot
+  apiKey="your-api-key"
+  qaEndpoint="https://your-api.com/chat"
+  welcomeMessage="Hello! How can I help you today?"
+  isLoggedIn={true}
+  onAnalyticsEvent={(event) => {
+    // Push to GTM dataLayer
+    window.dataLayer?.push({
+      event: event.type,
+      ...event
+    });
+  }}
+/>
+```
+
+**Event Types:**
+
+| Event | When Fired | Key Fields |
+|-------|------------|------------|
+| `qa_bot_opened` | Chat window opened | `sessionId` |
+| `qa_bot_closed` | Chat window closed | `sessionId`, `messageCount`, `durationMs` |
+| `qa_new_chat_started` | User clicks "New Chat" | `sessionId`, `previousMessageCount` |
+| `qa_question_asked` | User submits question | `sessionId`, `queryId`, `questionLength` |
+| `qa_response_received` | API returns response | `sessionId`, `queryId`, `responseTimeMs`, `responseLength`, `hasMetadata` |
+| `qa_response_error` | API call fails | `sessionId`, `queryId`, `errorType` |
+| `qa_response_rated` | User rates response | `sessionId`, `queryId`, `rating` |
+| `qa_login_prompt_shown` | Login gate displayed | `sessionId` |
+
+All events include `type` and `timestamp`. The `sessionId` is auto-injected when available.
+
+**TypeScript:**
+
+```typescript
+import type { QABotAnalyticsEvent, QABotAnalyticsEventType } from '@snf/qa-bot-core';
+```
+
+### Debug Logging
+
+The bot includes a lightweight logging utility that's disabled by default but can be enabled at runtime for troubleshooting. Logs are controlled via `localStorage`, making it easy to debug in any environment (including production) without rebuilding.
+
+**Enable debug logging:**
+```javascript
+localStorage.setItem('QA_BOT_DEBUG', 'true');
+```
+
+**Disable debug logging (default):**
+```javascript
+localStorage.removeItem('QA_BOT_DEBUG');
+```
+
+When enabled, you'll see styled console output for:
+- Library version on load
+- Session lifecycle events (CREATED, RESET, RESTORED)
+- API requests being sent
+
+Errors and warnings always display regardless of the debug flag.
 
 ## API Requirements
 

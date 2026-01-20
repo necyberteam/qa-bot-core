@@ -1,20 +1,37 @@
 import React from 'react';
-import { useFlow, useTextArea } from 'react-chatbotify';
+import { useFlow, useTextArea, useMessages } from 'react-chatbotify';
 import RefreshIcon from './icons/RefreshIcon';
 import { useSession } from '../contexts/SessionContext';
+import { useAnalytics } from '../contexts/AnalyticsContext';
+import { getSessionMessageCount } from '../utils/session-utils';
 
 const NewChatButton: React.FC = () => {
   const { restartFlow } = useFlow();
   const { setTextAreaValue } = useTextArea();
-  const { resetSession, clearResettingFlag } = useSession();
+  const { messages } = useMessages();
+  const { getSessionId, resetSession, clearResettingFlag } = useSession();
+  const { trackEvent } = useAnalytics();
 
   const handleNewChat = async () => {
+    // Get message count from old session before reset
+    const currentSessionId = getSessionId();
+    const previousMessageCount = currentSessionId ? getSessionMessageCount(currentSessionId) : 0;
+
+    // Track new chat event with previous session's message count
+    trackEvent({
+      type: 'qa_new_chat_started',
+      previousMessageCount
+    });
+
     // Reset session ID (sets resetting flag to true)
     resetSession();
+
     // Clear the input field immediately
     await setTextAreaValue('');
+
     // Restart the flow
     await restartFlow();
+
     // Wait a bit for any queued messages to be processed and blocked
     setTimeout(() => {
       clearResettingFlag();

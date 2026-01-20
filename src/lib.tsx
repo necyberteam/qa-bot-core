@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import QABot from './components/QABot';
-import type { BotControllerHandle } from './config';
+import type { BotControllerHandle, QABotAnalyticsEvent } from './config';
+import { logger } from './utils/logger';
 import './styles/index.css'; // QA Bot styles
 
 // Export the main component
@@ -27,7 +28,9 @@ export type { FlowSettingsOptions } from './utils/flow-settings';
 // Export types for usage
 export type {
   QABotProps,
-  BotControllerHandle
+  BotControllerHandle,
+  QABotAnalyticsEvent,
+  QABotAnalyticsEventType
 } from './config';
 
 /**
@@ -55,6 +58,7 @@ interface QABotConfig {
   footerText?: string;
   footerLink?: string;
   tooltipText?: string;
+  onAnalyticsEvent?: (event: QABotAnalyticsEvent) => void;
 }
 
 interface QABotInstance {
@@ -84,6 +88,7 @@ interface ProgrammaticQABotProps {
   footerText?: string;
   footerLink?: string;
   tooltipText?: string;
+  onAnalyticsEvent?: (event: QABotAnalyticsEvent) => void;
 }
 
 /**
@@ -141,6 +146,7 @@ const ProgrammaticQABot = React.forwardRef<BotControllerHandle, ProgrammaticQABo
         footerText={props.footerText}
         footerLink={props.footerLink}
         tooltipText={props.tooltipText}
+        onAnalyticsEvent={props.onAnalyticsEvent}
       />
     );
   }
@@ -156,7 +162,7 @@ ProgrammaticQABot.displayName = 'ProgrammaticQABot';
  */
 export function qaBot(config: QABotConfig): QABotInstance | undefined {
   if (!config.target || !(config.target instanceof HTMLElement)) {
-    console.error('QA Bot: A valid target DOM element is required');
+    logger.error('QA Bot: A valid target DOM element is required');
     return undefined;
   }
 
@@ -184,6 +190,7 @@ export function qaBot(config: QABotConfig): QABotInstance | undefined {
         footerText={config.footerText}
         footerLink={config.footerLink}
         tooltipText={config.tooltipText}
+        onAnalyticsEvent={config.onAnalyticsEvent}
       />
     </React.StrictMode>
   );
