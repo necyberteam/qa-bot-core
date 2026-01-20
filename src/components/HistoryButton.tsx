@@ -1,6 +1,6 @@
 // src/components/HistoryButton.tsx
 import React, { useState, useRef, useEffect } from 'react';
-import { useMessages } from 'react-chatbotify';
+import { useMessages, useTextArea } from 'react-chatbotify';
 import { getAllSessions, getSessionMessages } from '../utils/session-utils';
 import { fixMarkdownLinksInDom } from '../utils/fix-markdown-links';
 import { useSession } from '../contexts/SessionContext';
@@ -41,6 +41,7 @@ const HistoryButton: React.FC = () => {
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const { replaceMessages } = useMessages();
+  const { toggleTextAreaDisabled } = useTextArea();
   const { setSessionId, getSessionId } = useSession();
 
   // Close menu when clicking outside
@@ -114,6 +115,10 @@ const HistoryButton: React.FC = () => {
     // 5. Update the active session ID so new messages go to this session
     setSessionId(sessionId);
     logger.history('Session ID updated', { newSession: sessionId.slice(-12) });
+
+    // 6. Enable the chat input - restored sessions continue Q&A, not picking from a menu
+    toggleTextAreaDisabled(false);
+    logger.history('Chat input enabled after restore');
 
     setIsOpen(false);
   };
