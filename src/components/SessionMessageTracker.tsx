@@ -1,6 +1,6 @@
 // src/components/SessionMessageTracker.tsx
-import { useEffect, useCallback } from 'react';
-import { RcbPreInjectMessageEvent } from 'react-chatbotify';
+import { useEffect, useCallback, useRef } from 'react';
+import { RcbPreInjectMessageEvent, useMessages } from 'react-chatbotify';
 import { useSession } from '../contexts/SessionContext';
 import { addMessageToSession } from '../utils/session-utils';
 import { extractTextFromJsx } from '../utils/jsx-text-extractor';
@@ -14,13 +14,12 @@ import { logger } from '../utils/logger';
  * which messages belong to which conversation. Also, RCB's history storage
  * is opaque and unreliable for session restore.
  *
- * Solution: This component listens for every message injection and stores
- * the full message content in our own localStorage. The history dropdown
+ * Solution: This component watches the messages array via useMessages hook
+ * and stores new messages in our own localStorage. The history dropdown
  * restores sessions directly from our storage, not RCB's.
  *
- * Note: react-chatbotify wraps all messages (including plain strings) in JSX
- * before firing events. We use extractTextFromJsx() to recover the text content
- * from bot messages so they appear in restored sessions.
+ * Note: react-chatbotify wraps all messages (including plain strings) in JSX.
+ * We use extractTextFromJsx() to recover the text content from bot messages.
  *
  * Deduplication is handled by session-utils (checks message ID).
  *
@@ -28,6 +27,8 @@ import { logger } from '../utils/logger';
  */
 const SessionMessageTracker: React.FC = () => {
   const { getSessionId } = useSession();
+  const { messages } = useMessages();
+  const processedIdsRef = useRef<Set<string>>(new Set());
 
   const handlePreInjectMessage = useCallback((event: Event) => {
     const rcbEvent = event as unknown as RcbPreInjectMessageEvent;
@@ -126,6 +127,53 @@ const SessionMessageTracker: React.FC = () => {
       window.removeEventListener('rcb-pre-inject-message', handlePreInjectMessage);
     };
   }, [handlePreInjectMessage, handlePreProcessBlock]);
+
+  // NEW APPROACH: Watch the messages array directly
+  // This should catch ALL messages regardless of how they were added
+  useEffect(() => {
+    if (!messages || messages.length === 0) return;
+
+    const sessionId = getSessionId();
+    
+    messages.forEach((msg) => {
+      // Skip if we've already processed this message
+      if (!msg.id || processedIdsRef.current.has(msg.id)) {
+        return;
+      }
+
+      // Extract text content from message
+      let content: string;
+      if (typeof msg.content === 'string') {
+        content = msg.content;
+      } else {
+        content = extractTextFromJsx(msg.content);
+      }
+
+      // Log for debugging - this should show ALL messages
+      logger.message('USE_MESSAGES', {
+        id: msg.id,
+        sender: msg.sender,
+        type: msg.type,
+        content: content.substring(0, 100) + (content.length > 100 ? '...' : '')
+      });
+
+      // Skip rating option messages - they're not useful in history
+      if (content.includes('rcb-options-container')) {
+        processedIdsRef.current.add(msg.id);
+        return;
+      }
+
+      // Skip empty messages
+      if (!content.trim()) {
+        processedIdsRef.current.add(msg.id);
+        return;
+      }
+
+      // Track in our session storage
+      addMessageToSession(sessionId, msg.id, content, msg.sender, msg.type || 'string');
+      processedIdsRef.current.add(msg.id);
+    });
+  }, [messages, getSessionId]);
 
   // This component renders nothing - it just listens
   return null;
