@@ -12,7 +12,7 @@
 const DEBUG_KEY = 'QA_BOT_DEBUG';
 
 // Library version - update this when releasing (see publishing.md)
-export const LIB_VERSION = '0.2.10';
+export const LIB_VERSION = '0.2.11-rc.1';
 
 function isDebugEnabled(): boolean {
   return typeof localStorage !== 'undefined' && localStorage.getItem(DEBUG_KEY) === 'true';
@@ -23,6 +23,7 @@ const styles = {
   session: 'background: #1a5b6e; color: white; padding: 2px 6px; border-radius: 3px;',
   history: 'background: #7c3aed; color: white; padding: 2px 6px; border-radius: 3px;',
   message: 'background: #059669; color: white; padding: 2px 6px; border-radius: 3px;',
+  block: 'background: #dc2626; color: white; padding: 2px 6px; border-radius: 3px;',
   version: 'background: #f59e0b; color: #000; padding: 2px 6px; border-radius: 3px 0 0 3px; font-weight: bold;',
   versionNum: 'background: #fbbf24; color: #000; padding: 2px 6px; border-radius: 0 3px 3px 0;',
 };
@@ -53,6 +54,13 @@ export const logger = {
   message: (action: string, data: Record<string, unknown>) => {
     if (isDebugEnabled()) {
       console.log(`%c[Message]%c ${action}`, styles.message, '', data);
+    }
+  },
+
+  // Block processing - styled, only when DEBUG enabled
+  block: (action: string, data: Record<string, unknown>) => {
+    if (isDebugEnabled()) {
+      console.log(`%c[Block]%c ${action}`, styles.block, '', data);
     }
   },
 

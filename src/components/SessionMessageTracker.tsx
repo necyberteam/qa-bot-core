@@ -69,13 +69,57 @@ const SessionMessageTracker: React.FC = () => {
     addMessageToSession(sessionId, message.id, content, sender, type);
   }, [getSessionId]);
 
+  // Handler for block processing events - captures message: property from flow steps
+  const handlePreProcessBlock = useCallback((event: Event) => {
+    const blockEvent = event as CustomEvent<{ block: Record<string, unknown> }>;
+    const block = blockEvent.detail?.block;
+
+    // Log the block for debugging
+    logger.block('PRE_PROCESS', {
+      hasMessage: !!block?.message,
+      messageType: typeof block?.message,
+      hasOptions: !!block?.options,
+      hasComponent: !!block?.component,
+      block: block
+    });
+  }, []);
+
+  // Debug: Log ALL rcb events to see what's firing
   useEffect(() => {
+    const logAllEvents = (event: Event) => {
+      logger.message(event.type.replace('rcb-', '').toUpperCase(), {
+        data: (event as any).data
+      });
+    };
+
+    // Listen to all rcb events for debugging
+    const rcbEvents = [
+      'rcb-pre-inject-message',
+      'rcb-post-inject-message',
+      'rcb-change-path',
+      'rcb-user-submit-text'
+    ];
+
+    rcbEvents.forEach(eventName => {
+      window.addEventListener(eventName, logAllEvents);
+    });
+
+    // Listen for block processing events
+    window.addEventListener('rcb-pre-process-block', handlePreProcessBlock);
+    window.addEventListener('rcb-post-process-block', handlePreProcessBlock);
+
+    // Also keep the original handler for actual tracking
     window.addEventListener('rcb-pre-inject-message', handlePreInjectMessage);
 
     return () => {
+      rcbEvents.forEach(eventName => {
+        window.removeEventListener(eventName, logAllEvents);
+      });
+      window.removeEventListener('rcb-pre-process-block', handlePreProcessBlock);
+      window.removeEventListener('rcb-post-process-block', handlePreProcessBlock);
       window.removeEventListener('rcb-pre-inject-message', handlePreInjectMessage);
     };
-  }, [handlePreInjectMessage]);
+  }, [handlePreInjectMessage, handlePreProcessBlock]);
 
   // This component renders nothing - it just listens
   return null;
