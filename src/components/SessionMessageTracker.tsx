@@ -71,11 +71,15 @@ const SessionMessageTracker: React.FC = () => {
 
   // Handler for block processing events - captures message: property from flow steps
   const handlePreProcessBlock = useCallback((event: Event) => {
-    const blockEvent = event as CustomEvent<{ block: Record<string, unknown> }>;
-    const block = blockEvent.detail?.block;
+    // react-chatbotify uses .data not .detail for event payload
+    const rcbEvent = event as unknown as { data?: { block?: Record<string, unknown> } };
+    const block = rcbEvent.data?.block;
 
-    // Log the block for debugging
+    // Log the block for debugging (also log raw event to see structure)
     logger.block('PRE_PROCESS', {
+      eventType: event.type,
+      hasData: !!rcbEvent.data,
+      hasBlock: !!block,
       hasMessage: !!block?.message,
       messageType: typeof block?.message,
       hasOptions: !!block?.options,
@@ -97,7 +101,9 @@ const SessionMessageTracker: React.FC = () => {
       'rcb-pre-inject-message',
       'rcb-post-inject-message',
       'rcb-change-path',
-      'rcb-user-submit-text'
+      'rcb-user-submit-text',
+      'rcb-pre-process-block',
+      'rcb-post-process-block'
     ];
 
     rcbEvents.forEach(eventName => {
