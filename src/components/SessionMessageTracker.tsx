@@ -4,6 +4,7 @@ import { RcbPreInjectMessageEvent } from 'react-chatbotify';
 import { useSession } from '../contexts/SessionContext';
 import { addMessageToSession } from '../utils/session-utils';
 import { extractTextFromJsx } from '../utils/jsx-text-extractor';
+import { logger } from '../utils/logger';
 
 /**
  * Invisible component that stores each chat message with its session ID.
@@ -31,6 +32,12 @@ const SessionMessageTracker: React.FC = () => {
   const handlePreInjectMessage = useCallback((event: Event) => {
     const rcbEvent = event as unknown as RcbPreInjectMessageEvent;
     const message = rcbEvent.data?.message;
+
+    logger.message('PRE_INJECT', {
+      sender: message?.sender,
+      type: message?.type,
+      content: message?.content
+    });
 
     if (!message?.id) {
       return;
