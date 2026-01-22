@@ -1,39 +1,37 @@
-import React, { createContext, useContext, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useRef } from 'react';
 import type { QABotAnalyticsEvent } from '../config';
 
+/**
+ * Event type without auto-populated fields.
+ * Call sites provide event-specific data; common fields are added by the enriched tracker.
+ */
+export type AnalyticsEventInput = Omit<QABotAnalyticsEvent, 'timestamp' | 'sessionId' | 'pageUrl' | 'isEmbedded'>;
+
 interface AnalyticsContextValue {
-  trackEvent: (event: Omit<QABotAnalyticsEvent, 'timestamp'>) => void;
+  trackEvent: (event: AnalyticsEventInput) => void;
 }
 
 const AnalyticsContext = createContext<AnalyticsContextValue | null>(null);
 
 interface AnalyticsProviderProps {
-  onAnalyticsEvent?: (event: QABotAnalyticsEvent) => void;
-  getSessionId: () => string | null;
+  /**
+   * Pre-enriched track function that adds common fields (timestamp, sessionId, pageUrl, isEmbedded).
+   * Created by QABot and passed down to ensure consistent enrichment across all call sites.
+   */
+  trackEvent: (event: AnalyticsEventInput) => void;
   children: React.ReactNode;
 }
 
 export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({
-  onAnalyticsEvent,
-  getSessionId,
+  trackEvent,
   children
 }) => {
-  // Use ref to avoid recreating context value on every render
-  const callbackRef = useRef(onAnalyticsEvent);
-  callbackRef.current = onAnalyticsEvent;
-
-  const trackEvent = useCallback((event: Omit<QABotAnalyticsEvent, 'timestamp'>) => {
-    if (callbackRef.current) {
-      callbackRef.current({
-        ...event,
-        timestamp: Date.now(),
-        sessionId: event.sessionId ?? getSessionId() ?? undefined
-      });
-    }
-  }, [getSessionId]);
+  // Use ref to keep stable reference while allowing updates
+  const trackEventRef = useRef(trackEvent);
+  trackEventRef.current = trackEvent;
 
   return (
-    <AnalyticsContext.Provider value={{ trackEvent }}>
+    <AnalyticsContext.Provider value={{ trackEvent: (event) => trackEventRef.current(event) }}>
       {children}
     </AnalyticsContext.Provider>
   );
