@@ -25,6 +25,9 @@ export type { ProcessedFile } from './utils/file-utils';
 export { applyFlowSettings } from './utils/flow-settings';
 export type { FlowSettingsOptions } from './utils/flow-settings';
 
+// Export history tracking helpers for custom flows
+export { withHistory, withHistoryFn } from './utils/with-history';
+
 // Export types for usage
 export type {
   QABotProps,

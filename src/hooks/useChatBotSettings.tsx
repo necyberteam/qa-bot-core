@@ -72,7 +72,9 @@ const useChatBotSettings = ({ settings, themeColors }: UseChatBotSettingsProps):
     // they're applied before first render
 
     settings.event = {
-      rcbToggleChatWindow: true
+      rcbToggleChatWindow: true,
+      rcbPreProcessBlock: true,
+      rcbPostProcessBlock: true
     };
   }, [settings]);
 };

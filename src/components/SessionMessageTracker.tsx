@@ -14,13 +14,16 @@ import { logger } from '../utils/logger';
  * which messages belong to which conversation. Also, RCB's history storage
  * is opaque and unreliable for session restore.
  *
- * Solution: This component listens for every message injection and stores
- * the full message content in our own localStorage. The history dropdown
+ * Solution: This component listens for message injection events and stores
+ * the message content in our own localStorage. The history dropdown
  * restores sessions directly from our storage, not RCB's.
  *
  * Note: react-chatbotify wraps all messages (including plain strings) in JSX
  * before firing events. We use extractTextFromJsx() to recover the text content
  * from bot messages so they appear in restored sessions.
+ *
+ * IMPORTANT: For custom flow messages to be tracked, use the withHistory()
+ * helper function. See utils/with-history.ts for details.
  *
  * Deduplication is handled by session-utils (checks message ID).
  *
@@ -32,12 +35,6 @@ const SessionMessageTracker: React.FC = () => {
   const handlePreInjectMessage = useCallback((event: Event) => {
     const rcbEvent = event as unknown as RcbPreInjectMessageEvent;
     const message = rcbEvent.data?.message;
-
-    logger.message('PRE_INJECT', {
-      sender: message?.sender,
-      type: message?.type,
-      content: message?.content
-    });
 
     if (!message?.id) {
       return;
@@ -55,6 +52,13 @@ const SessionMessageTracker: React.FC = () => {
       content = extractTextFromJsx(message.content);
     }
 
+    // Log for debugging when enabled
+    logger.message('TRACKED', {
+      id: message.id,
+      sender,
+      content: content.substring(0, 50) + (content.length > 50 ? '...' : '')
+    });
+
     // Skip rating option messages - they're not useful in history
     if (content.includes('rcb-options-container')) {
       return;
@@ -69,57 +73,13 @@ const SessionMessageTracker: React.FC = () => {
     addMessageToSession(sessionId, message.id, content, sender, type);
   }, [getSessionId]);
 
-  // Handler for block processing events - captures message: property from flow steps
-  const handlePreProcessBlock = useCallback((event: Event) => {
-    const blockEvent = event as CustomEvent<{ block: Record<string, unknown> }>;
-    const block = blockEvent.detail?.block;
-
-    // Log the block for debugging
-    logger.block('PRE_PROCESS', {
-      hasMessage: !!block?.message,
-      messageType: typeof block?.message,
-      hasOptions: !!block?.options,
-      hasComponent: !!block?.component,
-      block: block
-    });
-  }, []);
-
-  // Debug: Log ALL rcb events to see what's firing
   useEffect(() => {
-    const logAllEvents = (event: Event) => {
-      logger.message(event.type.replace('rcb-', '').toUpperCase(), {
-        data: (event as any).data
-      });
-    };
-
-    // Listen to all rcb events for debugging
-    const rcbEvents = [
-      'rcb-pre-inject-message',
-      'rcb-post-inject-message',
-      'rcb-change-path',
-      'rcb-user-submit-text'
-    ];
-
-    rcbEvents.forEach(eventName => {
-      window.addEventListener(eventName, logAllEvents);
-    });
-
-    // Listen for block processing events
-    window.addEventListener('rcb-pre-process-block', handlePreProcessBlock);
-    window.addEventListener('rcb-post-process-block', handlePreProcessBlock);
-
-    // Also keep the original handler for actual tracking
     window.addEventListener('rcb-pre-inject-message', handlePreInjectMessage);
 
     return () => {
-      rcbEvents.forEach(eventName => {
-        window.removeEventListener(eventName, logAllEvents);
-      });
-      window.removeEventListener('rcb-pre-process-block', handlePreProcessBlock);
-      window.removeEventListener('rcb-post-process-block', handlePreProcessBlock);
       window.removeEventListener('rcb-pre-inject-message', handlePreInjectMessage);
     };
-  }, [handlePreInjectMessage, handlePreProcessBlock]);
+  }, [handlePreInjectMessage]);
 
   // This component renders nothing - it just listens
   return null;
