@@ -332,6 +332,47 @@ const processedFlow = applyFlowSettings(myFlow, {
 
 The `disableOnOptions: true` setting automatically sets `chatDisabled: true` for steps that have `options` or `checkboxes`, and `chatDisabled: false` for steps without them (unless you've explicitly set `chatDisabled` yourself).
 
+#### History Tracking for Custom Flows
+
+When building custom flows, you may want certain important messages to be saved in session history so they can be restored when a user revisits a previous session. By default, messages defined with the `message:` property in flow steps may not be tracked in history.
+
+Use the `withHistory` and `withHistoryFn` helpers to ensure messages are tracked:
+
+```javascript
+import { withHistory, withHistoryFn } from '@snf/qa-bot-core';
+
+const myFlow = {
+  // Static message - use withHistory()
+  ask_email: {
+    message: withHistory("Please enter your email address:"),
+    path: "next_step"
+  },
+
+  // Dynamic message - use withHistoryFn()
+  show_summary: {
+    message: withHistoryFn(() => {
+      const data = getFormData();
+      return `Summary:\nName: ${data.name}\nEmail: ${data.email}`;
+    }),
+    options: ["Submit", "Cancel"],
+    path: "submit"
+  },
+
+  // Success message with important data (e.g., ticket links)
+  success: {
+    message: withHistoryFn(() => generateSuccessMessage(result)),
+    options: ["Back to Menu"],
+    path: "start"
+  }
+};
+```
+
+**When to use these helpers:**
+- `withHistory(string)` - For static messages you want restored in history
+- `withHistoryFn(fn)` - For dynamic/computed messages (summaries, API responses with links)
+
+**Tip:** You don't need to wrap every message - only the important ones that would be valuable when restoring a session (like ticket confirmations, summaries, or API responses).
+
 ### Session Management
 
 The bot automatically manages conversation sessions with unique session IDs:
@@ -411,7 +452,8 @@ localStorage.removeItem('QA_BOT_DEBUG');
 When enabled, you'll see styled console output for:
 - Library version on load
 - Session lifecycle events (CREATED, RESET, RESTORED)
-- API requests being sent
+- History operations (message tracking, session restore)
+- Message tracking (which messages are being saved to history)
 
 Errors and warnings always display regardless of the debug flag.
 
