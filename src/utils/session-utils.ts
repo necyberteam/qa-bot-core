@@ -182,7 +182,7 @@ export const getSessionMessages = (sessionId: string): StoredMessage[] => {
 
 /**
  * Get the message count for a session.
- * Used for analytics (qa_bot_closed, qa_new_chat_started events).
+ * Used for analytics (chatbot_close, chatbot_new_chat events).
  */
 export const getSessionMessageCount = (sessionId: string): number => {
   const store = getSessionMessagesStore();
@@ -192,7 +192,7 @@ export const getSessionMessageCount = (sessionId: string): number => {
 /**
  * Compute how long a session has been active (in milliseconds).
  * Calculates the difference between now and the session's startedAt timestamp.
- * Used for analytics (qa_bot_closed event).
+ * Used for analytics (chatbot_close event).
  */
 export const computeSessionDurationMs = (sessionId: string): number => {
   const store = getSessionMessagesStore();

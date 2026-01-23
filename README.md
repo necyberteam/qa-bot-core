@@ -418,14 +418,14 @@ The bot fires analytics events via an optional callback prop, allowing you to wi
 
 | Event | When Fired | Key Fields |
 |-------|------------|------------|
-| `qa_bot_opened` | Chat window opened | `sessionId` |
-| `qa_bot_closed` | Chat window closed | `sessionId`, `messageCount`, `durationMs` |
-| `qa_new_chat_started` | User clicks "New Chat" | `sessionId`, `previousMessageCount` |
-| `qa_question_asked` | User submits question | `sessionId`, `queryId`, `questionLength` |
-| `qa_response_received` | API returns response | `sessionId`, `queryId`, `responseTimeMs`, `responseLength`, `hasMetadata` |
-| `qa_response_error` | API call fails | `sessionId`, `queryId`, `errorType` |
-| `qa_response_rated` | User rates response | `sessionId`, `queryId`, `rating` |
-| `qa_login_prompt_shown` | Login gate displayed | `sessionId` |
+| `chatbot_open` | Chat window opened | `sessionId` |
+| `chatbot_close` | Chat window closed | `sessionId`, `messageCount`, `durationMs` |
+| `chatbot_new_chat` | User clicks "New Chat" | `sessionId`, `previousMessageCount` |
+| `chatbot_question_sent` | User submits question | `sessionId`, `queryId`, `questionLength` |
+| `chatbot_answer_received` | API returns response | `sessionId`, `queryId`, `responseTimeMs`, `responseLength`, `hasMetadata` |
+| `chatbot_answer_error` | API call fails | `sessionId`, `queryId`, `errorType` |
+| `chatbot_rating_sent` | User rates response | `sessionId`, `queryId`, `rating` |
+| `chatbot_login_prompt_shown` | Login gate displayed | `sessionId` |
 
 All events include `type` and `timestamp`. The `sessionId` is auto-injected when available.
 
