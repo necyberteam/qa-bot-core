@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getProcessedText } from '../getProcessedText';
 import LoginButton from '../../components/LoginButton';
 import { logger } from '../logger';
-import type { QABotAnalyticsEvent } from '../../config';
+import type { AnalyticsEventInput } from '../../contexts/AnalyticsContext';
 
 /**
  * Configuration for creating a Q&A flow
@@ -28,8 +28,8 @@ export interface CreateQAFlowParams {
   loginUrl?: string;
   /** The acting user's identifier (optional) */
   actingUser?: string;
-  /** Callback for analytics events (optional) */
-  onAnalyticsEvent?: (event: QABotAnalyticsEvent) => void;
+  /** Enriched analytics tracker (adds common fields automatically) */
+  trackEvent?: (event: AnalyticsEventInput) => void;
 }
 
 /**
@@ -80,22 +80,12 @@ export const createQAFlow = ({
   allowAnonAccess = false,
   loginUrl = '/login',
   actingUser,
-  onAnalyticsEvent
+  trackEvent
 }: CreateQAFlowParams) => {
-  // Helper to track analytics events
-  const trackEvent = (event: Omit<QABotAnalyticsEvent, 'timestamp'>) => {
-    if (onAnalyticsEvent) {
-      onAnalyticsEvent({
-        ...event,
-        timestamp: Date.now(),
-        sessionId: event.sessionId ?? getSessionId() ?? undefined
-      });
-    }
-  };
   // Gate Q&A when user is logged out (unless allowAnonAccess is true)
   if (isLoggedIn === false && !allowAnonAccess) {
     // Track that login prompt was shown
-    trackEvent({ type: 'qa_login_prompt_shown' });
+    trackEvent?.({ type: 'qa_login_prompt_shown' });
 
     return {
       qa_loop: {
@@ -164,7 +154,7 @@ export const createQAFlow = ({
               });
 
               // Track rating event
-              trackEvent({
+              trackEvent?.({
                 type: 'qa_response_rated',
                 queryId: feedbackQueryId,
                 rating: isPositive ? 'helpful' : 'not_helpful'
@@ -183,7 +173,7 @@ export const createQAFlow = ({
           feedbackQueryId = queryId;
 
           // Track question asked
-          trackEvent({
+          trackEvent?.({
             type: 'qa_question_asked',
             queryId,
             questionLength: userInput.length
@@ -259,7 +249,7 @@ export const createQAFlow = ({
           await chatState.injectMessage(fullContent);
 
           // Track response received
-          trackEvent({
+          trackEvent?.({
             type: 'qa_response_received',
             queryId,
             responseTimeMs,
@@ -281,7 +271,7 @@ export const createQAFlow = ({
           logger.error('Error in Q&A flow:', error);
 
           // Track error event
-          trackEvent({
+          trackEvent?.({
             type: 'qa_response_error',
             queryId: feedbackQueryId ?? undefined,
             errorType: error instanceof Error ? error.message : 'unknown'

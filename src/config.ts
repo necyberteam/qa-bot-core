@@ -15,20 +15,31 @@ export type QABotAnalyticsEventType =
 
 /**
  * Analytics event payload
- * Fields are populated based on event type:
- * - qa_bot_opened: sessionId
- * - qa_bot_closed: sessionId, messageCount, durationMs
- * - qa_new_chat_started: sessionId, previousMessageCount
- * - qa_question_asked: sessionId, queryId, questionLength
- * - qa_response_received: sessionId, queryId, responseTimeMs, success, responseLength, hasMetadata
- * - qa_response_error: sessionId, queryId, errorType
- * - qa_response_rated: sessionId, queryId, rating
- * - qa_login_prompt_shown: sessionId
+ * 
+ * Common fields (auto-populated for all events):
+ * - timestamp: When the event occurred
+ * - sessionId: Current chat session ID
+ * - pageUrl: URL where the bot is displayed
+ * - isEmbedded: Whether bot is in embedded mode (true) or floating/widget mode (false)
+ * 
+ * Event-specific fields:
+ * - qa_bot_opened: (common fields only)
+ * - qa_bot_closed: messageCount, durationMs
+ * - qa_new_chat_started: previousMessageCount
+ * - qa_question_asked: queryId, questionLength
+ * - qa_response_received: queryId, responseTimeMs, success, responseLength, hasMetadata
+ * - qa_response_error: queryId, errorType
+ * - qa_response_rated: queryId, rating
+ * - qa_login_prompt_shown: (common fields only)
  */
 export interface QABotAnalyticsEvent {
   type: QABotAnalyticsEventType;
   timestamp: number;
   sessionId?: string;
+  // Common context fields (auto-populated)
+  pageUrl?: string;
+  isEmbedded?: boolean;
+  // Query tracking
   queryId?: string;
   // qa_question_asked
   questionLength?: number;
