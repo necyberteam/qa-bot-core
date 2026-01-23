@@ -285,11 +285,11 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
         // Track open/close analytics events
         if (newOpenState) {
           // Chat opened
-          trackEvent({ type: 'qa_bot_opened' });
+          trackEvent({ type: 'chatbot_open' });
         } else {
           // Chat closed - include session metrics
           trackEvent({
-            type: 'qa_bot_closed',
+            type: 'chatbot_close',
             messageCount: currentSessionId ? getSessionMessageCount(currentSessionId) : 0,
             durationMs: currentSessionId ? computeSessionDurationMs(currentSessionId) : 0
           });

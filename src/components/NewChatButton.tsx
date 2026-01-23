@@ -19,7 +19,7 @@ const NewChatButton: React.FC = () => {
 
     // Track new chat event with previous session's message count
     trackEvent({
-      type: 'qa_new_chat_started',
+      type: 'chatbot_new_chat',
       previousMessageCount
     });
 

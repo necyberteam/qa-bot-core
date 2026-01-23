@@ -4,14 +4,14 @@ import type { Settings, Flow } from 'react-chatbotify';
  * Analytics event types fired by qa-bot-core
  */
 export type QABotAnalyticsEventType =
-  | 'qa_bot_opened'
-  | 'qa_bot_closed'
-  | 'qa_new_chat_started'
-  | 'qa_question_asked'
-  | 'qa_response_received'
-  | 'qa_response_error'
-  | 'qa_response_rated'
-  | 'qa_login_prompt_shown';
+  | 'chatbot_open'
+  | 'chatbot_close'
+  | 'chatbot_new_chat'
+  | 'chatbot_question_sent'
+  | 'chatbot_answer_received'
+  | 'chatbot_answer_error'
+  | 'chatbot_rating_sent'
+  | 'chatbot_login_prompt_shown';
 
 /**
  * Analytics event payload
@@ -23,14 +23,14 @@ export type QABotAnalyticsEventType =
  * - isEmbedded: Whether bot is in embedded mode (true) or floating/widget mode (false)
  * 
  * Event-specific fields:
- * - qa_bot_opened: (common fields only)
- * - qa_bot_closed: messageCount, durationMs
- * - qa_new_chat_started: previousMessageCount
- * - qa_question_asked: queryId, questionLength
- * - qa_response_received: queryId, responseTimeMs, success, responseLength, hasMetadata
- * - qa_response_error: queryId, errorType
- * - qa_response_rated: queryId, rating
- * - qa_login_prompt_shown: (common fields only)
+ * - chatbot_open: (common fields only)
+ * - chatbot_close: messageCount, durationMs
+ * - chatbot_new_chat: previousMessageCount
+ * - chatbot_question_sent: queryId, questionLength
+ * - chatbot_answer_received: queryId, responseTimeMs, success, responseLength, hasMetadata
+ * - chatbot_answer_error: queryId, errorType
+ * - chatbot_rating_sent: queryId, rating
+ * - chatbot_login_prompt_shown: (common fields only)
  */
 export interface QABotAnalyticsEvent {
   type: QABotAnalyticsEventType;
@@ -41,21 +41,21 @@ export interface QABotAnalyticsEvent {
   isEmbedded?: boolean;
   // Query tracking
   queryId?: string;
-  // qa_question_asked
+  // chatbot_question_sent
   questionLength?: number;
-  // qa_response_received
+  // chatbot_answer_received
   responseTimeMs?: number;
   success?: boolean;
   responseLength?: number;
   hasMetadata?: boolean;
-  // qa_response_error
+  // chatbot_answer_error
   errorType?: string;
-  // qa_response_rated
+  // chatbot_rating_sent
   rating?: 'helpful' | 'not_helpful';
-  // qa_bot_closed
+  // chatbot_close
   messageCount?: number;
   durationMs?: number;
-  // qa_new_chat_started
+  // chatbot_new_chat
   previousMessageCount?: number;
 }
 

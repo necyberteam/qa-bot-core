@@ -85,7 +85,7 @@ export const createQAFlow = ({
   // Gate Q&A when user is logged out (unless allowAnonAccess is true)
   if (isLoggedIn === false && !allowAnonAccess) {
     // Track that login prompt was shown
-    trackEvent?.({ type: 'qa_login_prompt_shown' });
+    trackEvent?.({ type: 'chatbot_login_prompt_shown' });
 
     return {
       qa_loop: {
@@ -155,7 +155,7 @@ export const createQAFlow = ({
 
               // Track rating event
               trackEvent?.({
-                type: 'qa_response_rated',
+                type: 'chatbot_rating_sent',
                 queryId: feedbackQueryId,
                 rating: isPositive ? 'helpful' : 'not_helpful'
               });
@@ -174,7 +174,7 @@ export const createQAFlow = ({
 
           // Track question asked
           trackEvent?.({
-            type: 'qa_question_asked',
+            type: 'chatbot_question_sent',
             queryId,
             questionLength: userInput.length
           });
@@ -250,7 +250,7 @@ export const createQAFlow = ({
 
           // Track response received
           trackEvent?.({
-            type: 'qa_response_received',
+            type: 'chatbot_answer_received',
             queryId,
             responseTimeMs,
             success: true,
@@ -272,7 +272,7 @@ export const createQAFlow = ({
 
           // Track error event
           trackEvent?.({
-            type: 'qa_response_error',
+            type: 'chatbot_answer_error',
             queryId: feedbackQueryId ?? undefined,
             errorType: error instanceof Error ? error.message : 'unknown'
           });
