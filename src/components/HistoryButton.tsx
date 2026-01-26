@@ -37,6 +37,8 @@ const formatDate = (dateString: string): string => {
 const HistoryButton: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [sessions, setSessions] = useState<ReturnType<typeof getAllSessions>>([]);
+  const [menuWidth, setMenuWidth] = useState<number | null>(null);
+  const [menuRight, setMenuRight] = useState<number>(0);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -69,6 +71,20 @@ const HistoryButton: React.FC = () => {
     if (!isOpen) {
       // Refresh sessions when opening
       setSessions(getAllSessions());
+
+      // Calculate dropdown position based on chat window
+      if (buttonRef.current) {
+        const chatWindow = buttonRef.current.closest('.rcb-chat-window');
+        if (chatWindow) {
+          const chatRect = chatWindow.getBoundingClientRect();
+          const buttonRect = buttonRef.current.getBoundingClientRect();
+          // Width should match the chat window (+ small adjustment for border/padding)
+          setMenuWidth(chatRect.width + 3);
+          // Right offset: distance from button's right edge to chat window's right edge
+          // Subtract button's marginRight (18px) and adjust to align with window edge
+          setMenuRight(chatRect.right - buttonRect.right - 18 + 4);
+        }
+      }
     }
     setIsOpen(!isOpen);
   };
@@ -170,11 +186,11 @@ const HistoryButton: React.FC = () => {
           ref={menuRef}
           role="menu"
           style={{
-            position: 'fixed',
-            left: 0,
-            right: 0,
-            top: 'auto',
+            position: 'absolute',
+            right: menuRight ? `-${menuRight}px` : '-18px',
+            top: '100%',
             marginTop: '8px',
+            width: menuWidth ? `${menuWidth}px` : '550px',
             backgroundColor: 'white',
             borderRadius: 0,
             borderBottom: '3px solid var(--primaryColor, #1a5b6e)',
