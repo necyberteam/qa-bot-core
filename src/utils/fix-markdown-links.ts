@@ -24,10 +24,11 @@
  * - Escaped HTML anchors: &lt;a href="url"...&gt;text&lt;/a&gt;
  * - Plain text HTML anchors: <a href="url"...>text</a> (displayed as text)
  */
-export const fixMarkdownLinksInDom = (): void => {
+export const fixMarkdownLinksInDom = (root?: Document | ShadowRoot): void => {
   // Wait for React to finish rendering the messages
   setTimeout(() => {
-    const chatBody = document.querySelector('.rcb-chat-body-container');
+    const searchRoot = root || document;
+    const chatBody = searchRoot.querySelector('.rcb-chat-body-container');
     if (!chatBody) {
       return;
     }
