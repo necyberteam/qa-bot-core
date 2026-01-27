@@ -59,11 +59,12 @@ const HistoryButton: React.FC = () => {
       }
     };
 
+    const rootNode = menuRef.current?.getRootNode() ?? document;
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      rootNode.addEventListener('mousedown', handleClickOutside as EventListener);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      rootNode.removeEventListener('mousedown', handleClickOutside as EventListener);
     };
   }, [isOpen]);
 
@@ -126,7 +127,7 @@ const HistoryButton: React.FC = () => {
     logger.history('replaceMessages called', { count: rcbMessages.length });
 
     // 4. Fix markdown links in rendered messages (see fix-markdown-links.ts for explanation)
-    fixMarkdownLinksInDom();
+    fixMarkdownLinksInDom(buttonRef.current?.getRootNode() as Document | ShadowRoot);
 
     // 5. Update the active session ID so new messages go to this session
     setSessionId(sessionId);
