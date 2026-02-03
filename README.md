@@ -45,6 +45,7 @@ Customize appearance and behavior:
   // Authentication (required)
   isLoggedIn={true}
   allowAnonAccess={false}
+  actingUser="user@example.com"
   loginUrl="/login"
 
   // Window control
@@ -129,13 +130,14 @@ bot.destroy();
 | `isLoggedIn` | boolean | ✅ | Whether the user is logged in. Controls header icon and Q&A access gating |
 | `ratingEndpoint` | string | ❌ | Rating API endpoint URL (enables thumbs up/down) |
 | `allowAnonAccess` | boolean | ❌ | Allow Q&A access even when not logged in (default: `false`) |
+| `actingUser` | string | ❌ | Acting user identifier sent to backend as `X-Acting-User` header and `acting_user` body field |
 | `loginUrl` | string | ❌ | Login URL for the login button when not logged in (default: `/login`) |
 | `open` | boolean | ❌ | Control chat window open/closed state |
 | `onOpenChange` | function | ❌ | Callback when chat window state changes: `(open: boolean) => void` |
 | `primaryColor` | string | ❌ | Main theme color (default: `#1a5b6e`) |
 | `secondaryColor` | string | ❌ | Secondary theme color (default: `#107180`) |
 | `botName` | string | ❌ | Bot display name (default: `Q&A Bot`) |
-| `logo` | string | ❌ | Bot avatar URL (default: `/default-chat-icon.svg`) |
+| `logo` | string | ❌ | Bot avatar URL (default: `/chat-icon.svg`) |
 | `placeholder` | string | ❌ | Input placeholder text |
 | `errorMessage` | string | ❌ | Error state message |
 | `tooltipText` | string | ❌ | Tooltip text for chat toggle |
