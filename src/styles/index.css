@@ -32,13 +32,16 @@
   color: var(--primaryColor, #107180);
 }
 
-.rcb-chat-window .rcb-bot-message a {
-  text-decoration: none;
-  color: #ffffff;
+.rcb-chat-window .rcb-bot-message a,
+.rcb-chat-window .rcb-bot-message a:link,
+.rcb-chat-window .rcb-bot-message a:visited {
+  text-decoration: underline !important;
+  color: #ffffff !important;
 }
 
 .rcb-chat-window .rcb-bot-message a:hover {
-  text-decoration: underline;
+  text-decoration: underline !important;
+  opacity: 0.85;
 }
 
 .rcb-chat-window .rcb-chat-input-textarea {
