@@ -26,7 +26,11 @@ export interface CreateQAFlowParams {
   allowAnonAccess?: boolean;
   /** Login URL to redirect to (optional) */
   loginUrl?: string;
-  /** The acting user's identifier (optional) */
+  /**
+   * The acting user's identifier.
+   * @deprecated Identity is now determined server-side from the JWT cookie.
+   * This prop is ignored — retained only for backward compatibility during transition.
+   */
   actingUser?: string;
   /** Enriched analytics tracker (adds common fields automatically) */
   trackEvent?: (event: AnalyticsEventInput) => void;
@@ -146,6 +150,7 @@ export const createQAFlow = ({
               await fetch(ratingEndpoint, {
                 method: 'POST',
                 headers,
+                credentials: 'include',
                 body: JSON.stringify({
                   sessionId: currentSessionId,
                   queryId: feedbackQueryId,
@@ -192,25 +197,17 @@ export const createQAFlow = ({
             headers['X-Session-ID'] = currentSessionId;
             headers['X-Query-ID'] = queryId;
           }
-          if (actingUser) {
-            headers['X-Acting-User'] = actingUser;
-          }
-
           // Build request body
           const requestBody: Record<string, string> = {
             query: userInput,
             session_id: currentSessionId,
             question_id: queryId
           };
-          if (actingUser) {
-            requestBody.acting_user = actingUser;
-          }
 
           // Log the session ID being sent
           logger.session('SENT to API', {
             session_id: currentSessionId,
-            question_id: queryId,
-            acting_user: actingUser || '(not set)'
+            question_id: queryId
           });
 
           // Capture timestamp before fetch for response time calculation
@@ -219,6 +216,7 @@ export const createQAFlow = ({
           const response = await fetch(endpoint, {
             method: 'POST',
             headers,
+            credentials: 'include',
             body: JSON.stringify(requestBody)
           });
 
