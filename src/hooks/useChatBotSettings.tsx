@@ -59,7 +59,7 @@ const useChatBotSettings = ({ settings, themeColors }: UseChatBotSettingsProps):
     };
 
     settings.chatHistory = {
-      disabled: false
+      disabled: true
     };
 
     settings.chatButton = {
