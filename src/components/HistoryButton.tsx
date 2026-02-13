@@ -122,16 +122,20 @@ const HistoryButton: React.FC = () => {
       timestamp: new Date(m.timestamp).toISOString()
     }));
 
-    // 3. Replace displayed messages with the session's messages
+    // 3. Update the active session ID BEFORE replacing messages.
+    //    replaceMessages fires rcb-pre-inject-message events, which
+    //    SessionMessageTracker captures. If the session ID isn't updated
+    //    first, the restored messages get written into the *current*
+    //    session, creating a duplicate session in history.
+    setSessionId(sessionId);
+    logger.history('Session ID updated', { newSession: sessionId.slice(-12) });
+
+    // 4. Replace displayed messages with the session's messages
     replaceMessages(rcbMessages);
     logger.history('replaceMessages called', { count: rcbMessages.length });
 
-    // 4. Fix markdown links in rendered messages (see fix-markdown-links.ts for explanation)
+    // 5. Fix markdown links in rendered messages (see fix-markdown-links.ts for explanation)
     fixMarkdownLinksInDom(buttonRef.current?.getRootNode() as Document | ShadowRoot);
-
-    // 5. Update the active session ID so new messages go to this session
-    setSessionId(sessionId);
-    logger.history('Session ID updated', { newSession: sessionId.slice(-12) });
 
     // 6. Enable the chat input - restored sessions continue Q&A, not picking from a menu
     toggleTextAreaDisabled(false);
