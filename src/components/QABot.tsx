@@ -252,6 +252,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     // Configure start step
     const startStep = {
       message: welcomeMessage,
+      renderMarkdown: ["BOT"],
       transition: { duration: 0 },
       path: "qa_loop"
     };
