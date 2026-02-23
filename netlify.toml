@@ -6,9 +6,17 @@
   # Output directory (Create React App default)
   publish = "build"
   # Node version
-  environment = { NODE_VERSION = "18" }
+  environment = { NODE_VERSION = "18", REACT_APP_QA_ENDPOINT = "/api/v1/query", REACT_APP_API_KEY = "demo-key" }
 
-# SPA redirect - handle client-side routing
+# Proxy API calls to the ACCESS agent backend
+# Netlify 200 redirects act as a reverse proxy (no CORS needed)
+[[redirects]]
+  from = "/api/*"
+  to = "https://access-agent.elytra.net/api/:splat"
+  status = 200
+  force = true
+
+# SPA redirect - handle client-side routing (must come AFTER proxy rules)
 [[redirects]]
   from = "/*"
   to = "/index.html"
