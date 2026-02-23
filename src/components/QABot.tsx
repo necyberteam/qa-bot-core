@@ -1,5 +1,5 @@
 // src/components/QABot.tsx
-import React, { useRef, useEffect, useMemo, forwardRef, useState } from 'react';
+import React, { useRef, useEffect, useMemo, forwardRef, useState, useCallback } from 'react';
 import ChatBot, { ChatBotProvider, Button } from "react-chatbotify";
 import HtmlRenderer from "@rcb-plugins/html-renderer";
 import MarkdownRenderer from "@rcb-plugins/markdown-renderer";
@@ -7,15 +7,23 @@ import InputValidator from "@rcb-plugins/input-validator";
 import BotController from './BotController';
 import LoginButton from './LoginButton';
 import UserIcon from './UserIcon';
+import HistoryButton from './HistoryButton';
 import NewChatButton from './NewChatButton';
+import SessionMessageTracker from './SessionMessageTracker';
 import useThemeColors from '../hooks/useThemeColors';
 import useChatBotSettings from '../hooks/useChatBotSettings';
 import useFocusableSendButton from '../hooks/useFocusableSendButton';
 import useKeyboardNavigation from '../hooks/useKeyboardNavigation';
 import useUpdateHeader from '../hooks/useUpdateHeader';
 import { createQAFlow } from '../utils/flows/qa-flow';
-import { generateSessionId } from '../utils/session-utils';
+import {
+  generateSessionId,
+  getSessionMessageCount,
+  computeSessionDurationMs
+} from '../utils/session-utils';
 import { SessionProvider } from '../contexts/SessionContext';
+import { AnalyticsProvider, type AnalyticsEventInput } from '../contexts/AnalyticsContext';
+import { logger } from '../utils/logger';
 import type { Settings, Flow } from 'react-chatbotify';
 import {
   fixedReactChatbotifySettings,
@@ -43,6 +51,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     // Login state props (isLoggedIn is required)
     isLoggedIn,
     allowAnonAccess = false,
+    actingUser,
 
     // Optional branding
     primaryColor,
@@ -64,14 +73,27 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     loginUrl,
 
     // Custom flow extension
-    customFlow
+    customFlow,
+
+    // Analytics callback
+    onAnalyticsEvent
   } = props;
 
   // Instance ID - stable across component lifecycle (for unique React keys)
   const instanceIdRef = useRef<string>(`bot_${Math.random().toString(36).substr(2, 9)}`);
 
+  // Log version on mount (when debug enabled)
+  useEffect(() => {
+    logger.version();
+  }, []);
+
   // Session management - use ref so session can change without recreating flow
-  const sessionIdRef = useRef<string>(generateSessionId());
+  // Use lazy initializer to only generate once per mount
+  const sessionIdRef = useRef<string | null>(null);
+  if (sessionIdRef.current === null) {
+    sessionIdRef.current = generateSessionId();
+    logger.session('CREATED', sessionIdRef.current);
+  }
 
   // Track when we're resetting to prevent message replay
   const isResettingRef = useRef<boolean>(false);
@@ -84,8 +106,17 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
 
   // Function to reset session ID (creates a new unique session)
   const resetSession = () => {
+    const oldSessionId = sessionIdRef.current;
     isResettingRef.current = true;
     sessionIdRef.current = generateSessionId();
+    logger.session('RESET', `${oldSessionId?.slice(-12)} -> ${sessionIdRef.current.slice(-12)}`);
+  };
+
+  // Function to set session ID (for restoring a previous session)
+  const setSessionId = (sessionId: string) => {
+    const oldSessionId = sessionIdRef.current;
+    sessionIdRef.current = sessionId;
+    logger.session('RESTORED', `${oldSessionId?.slice(-12)} -> ${sessionId.slice(-12)}`);
   };
 
   // Function to clear the resetting flag (called after flow restart completes)
@@ -102,6 +133,26 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     setInternalIsLoggedIn(isLoggedIn);
   }, [isLoggedIn]);
 
+  // Determine if embedded (with default)
+  const isEmbeddedMode = embedded !== undefined ? embedded : defaultValues.embedded;
+
+  /**
+   * Enriched analytics tracker - single source of truth for event enrichment.
+   * Adds common fields (timestamp, sessionId, pageUrl, isEmbedded) to all events.
+   * Used by: QABot directly, AnalyticsProvider (for child components), and qa-flow.
+   */
+  const trackEvent = useCallback((event: AnalyticsEventInput) => {
+    if (onAnalyticsEvent) {
+      onAnalyticsEvent({
+        ...event,
+        timestamp: Date.now(),
+        sessionId: sessionIdRef.current ?? undefined,
+        pageUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+        isEmbedded: isEmbeddedMode
+      });
+    }
+  }, [onAnalyticsEvent, isEmbeddedMode]);
+
   // Build settings: Fixed settings + overridable props
   const settings = useMemo((): Settings => {
     // Start with fixed settings (cannot be overridden)
@@ -113,21 +164,22 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       primaryColor: primaryColor || defaultValues.primaryColor,
       secondaryColor: secondaryColor || defaultValues.secondaryColor,
       fontFamily: defaultValues.fontFamily,
-      embedded: embedded !== undefined ? embedded : defaultValues.embedded
+      embedded: isEmbeddedMode
     };
 
     // Build header buttons array conditionally
     // Show login button only if explicitly logged out (isLoggedIn === false)
-    const loginOrUserButton = internalIsLoggedIn === false
-      ? <LoginButton key="login-button" loginUrl={loginUrl || defaultValues.loginUrl} isHeaderButton={true} />
-      : <UserIcon key="user-icon" />;
+    // Show history button + user icon when logged in
+    const headerButtons = internalIsLoggedIn === false
+      ? [<LoginButton key="login-button" loginUrl={loginUrl || defaultValues.loginUrl} isHeaderButton={true} />]
+      : [<HistoryButton key="history-button" />, <UserIcon key="user-icon" />];
 
     base.header = {
       title: <span style={{ fontSize: 14, fontWeight: 500 }}>{botName || defaultValues.botName}</span>,
       showAvatar: true,
       avatar: logo || defaultValues.avatar,
       buttons: [
-        loginOrUserButton,
+        ...headerButtons,
         Button.CLOSE_CHAT_BUTTON
       ]
     };
@@ -158,8 +210,17 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       buttons: [<NewChatButton key="new-chat-button" />]
     };
 
+    // Enable events for message tracking
+    base.event = {
+      rcbPreInjectMessage: true,
+      rcbPostInjectMessage: true,
+      rcbUserSubmitText: true,
+      rcbChangePath: true,
+      rcbToggleChatWindow: true
+    };
+
     return base;
-  }, [primaryColor, secondaryColor, botName, logo, placeholder, errorMessage, embedded, tooltipText, internalIsLoggedIn, loginUrl, footerText, footerLink]);
+  }, [primaryColor, secondaryColor, botName, logo, placeholder, errorMessage, isEmbeddedMode, tooltipText, internalIsLoggedIn, loginUrl, footerText, footerLink]);
 
   // Container ref for theming
   const containerRef = useRef<HTMLDivElement>(null);
@@ -183,12 +244,15 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       isResetting: sessionGetter.current.isResetting,
       isLoggedIn: internalIsLoggedIn,
       allowAnonAccess: allowAnonAccess,
-      loginUrl: loginUrl || defaultValues.loginUrl
+      loginUrl: loginUrl || defaultValues.loginUrl,
+      actingUser: actingUser,
+      trackEvent: trackEvent
     });
 
     // Configure start step
     const startStep = {
       message: welcomeMessage,
+      renderMarkdown: ["BOT"],
       transition: { duration: 0 },
       path: "qa_loop"
     };
@@ -199,7 +263,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       ...qaFlow,
       ...(customFlow || {})
     };
-  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow]);
+  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, trackEvent]);
 
   // default react-chatbotify plugins
   const plugins = useMemo(() => {
@@ -212,10 +276,25 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
 
   // Listen for chat window toggle events
   useEffect(() => {
-    if (!embedded && onOpenChange) {
+    if (!isEmbeddedMode) {
       const handleChatWindowToggle = (event: any) => {
         const newOpenState = event.data.newState;
-        onOpenChange(newOpenState);
+        onOpenChange?.(newOpenState);
+
+        const currentSessionId = sessionIdRef.current;
+
+        // Track open/close analytics events
+        if (newOpenState) {
+          // Chat opened
+          trackEvent({ type: 'chatbot_open' });
+        } else {
+          // Chat closed - include session metrics
+          trackEvent({
+            type: 'chatbot_close',
+            messageCount: currentSessionId ? getSessionMessageCount(currentSessionId) : 0,
+            durationMs: currentSessionId ? computeSessionDurationMs(currentSessionId) : 0
+          });
+        }
       };
       window.addEventListener('rcb-toggle-chat-window', handleChatWindowToggle);
 
@@ -223,7 +302,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
         window.removeEventListener('rcb-toggle-chat-window', handleChatWindowToggle);
       };
     }
-  }, [embedded, onOpenChange]);
+  }, [isEmbeddedMode, onOpenChange, trackEvent]);
 
   return (
     <div
@@ -232,9 +311,11 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       role="region"
       aria-label={botName || defaultValues.botName}
     >
-      <SessionProvider resetSession={resetSession} clearResettingFlag={clearResettingFlag}>
+      <SessionProvider getSessionId={() => sessionIdRef.current!} setSessionId={setSessionId} resetSession={resetSession} clearResettingFlag={clearResettingFlag}>
+        <AnalyticsProvider trackEvent={trackEvent}>
         <ChatBotProvider>
           <div>
+            <SessionMessageTracker />
             <BotController
               ref={ref}
               embedded={settings.general?.embedded || false}
@@ -262,6 +343,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
             </div>
           </div>
         </ChatBotProvider>
+        </AnalyticsProvider>
       </SessionProvider>
     </div>
   );

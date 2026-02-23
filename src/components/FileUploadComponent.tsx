@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import useScreenshotCapture from '../hooks/useScreenshotCapture';
 import UploadIcon from './icons/UploadIcon';
 import { formatFileSize } from '../utils/file-utils';
+import { logger } from '../utils/logger';
 
 export interface FileUploadComponentProps {
   /** Callback when files are selected/uploaded */
@@ -46,7 +47,7 @@ const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
   const handleFiles = (files: FileList | File[]): void => {
     // Defensive check: ensure files is valid and iterable
     if (!files || (files as FileList).length === 0) {
-      console.warn('FileUploadComponent: No valid files provided to handleFiles');
+      logger.warn('FileUploadComponent: No valid files provided to handleFiles');
       return;
     }
 
@@ -54,7 +55,7 @@ const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
     try {
       newFileArray = Array.from(files);
     } catch (error) {
-      console.error('FileUploadComponent: Error converting files to array:', error);
+      logger.error('FileUploadComponent: Error converting files to array:', error);
       announceToScreenReader('Error processing selected files. Please try again.');
       return;
     }
@@ -101,7 +102,7 @@ const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
         handleFiles(e.dataTransfer.files);
       }
     } catch (error) {
-      console.error('FileUploadComponent: Error in handleDrop:', error);
+      logger.error('FileUploadComponent: Error in handleDrop:', error);
       announceToScreenReader('Error processing dropped files. Please try again.');
     }
   };
@@ -112,7 +113,7 @@ const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
         handleFiles(e.target.files);
       }
     } catch (error) {
-      console.error('FileUploadComponent: Error in handleFileSelect:', error);
+      logger.error('FileUploadComponent: Error in handleFileSelect:', error);
       announceToScreenReader('Error processing selected files. Please try again.');
     }
   };
@@ -123,7 +124,7 @@ const FileUploadComponent: React.FC<FileUploadComponentProps> = ({
         fileInputRef.current.click();
       }
     } catch (error) {
-      console.error('FileUploadComponent: Error in handleButtonClick:', error);
+      logger.error('FileUploadComponent: Error in handleButtonClick:', error);
       announceToScreenReader('Error opening file selection dialog. Please try again.');
     }
   };

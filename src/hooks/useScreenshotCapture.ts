@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { logger } from '../utils/logger';
 
 interface ScreenshotCaptureResult {
   captureScreenshot: () => Promise<File>;
@@ -84,7 +85,7 @@ const useScreenshotCapture = (): ScreenshotCaptureResult => {
       setIsCapturing(false);
       return file;
     } catch (error) {
-      console.error('Error capturing screenshot:', error);
+      logger.error('Error capturing screenshot:', error);
       setIsCapturing(false);
       throw error;
     }

@@ -26,6 +26,7 @@ function App() {
       apiKey="your-api-key"
       qaEndpoint="https://your-api.com/chat"
       welcomeMessage="Hello! How can I help you today?"
+      isLoggedIn={true}
     />
   );
 }
@@ -41,8 +42,13 @@ Customize appearance and behavior:
   ratingEndpoint="https://your-api.com/rating"
   welcomeMessage="Hello! How can I help you today?"
 
-  // Control
-  enabled={true}
+  // Authentication (required)
+  isLoggedIn={true}
+  allowAnonAccess={false}
+  actingUser="user@example.com"
+  loginUrl="/login"
+
+  // Window control
   open={false}
   onOpenChange={(isOpen) => console.log('Chat is now', isOpen ? 'open' : 'closed')}
 
@@ -77,6 +83,7 @@ const bot = qaBot({
   qaEndpoint: 'https://your-api.com/chat',
   ratingEndpoint: 'https://your-api.com/rating',
   welcomeMessage: "Hello! How can I help you today?",
+  isLoggedIn: true,
   primaryColor: '#24292e',
   secondaryColor: '#586069',
   botName: 'Demo Assistant',
@@ -102,6 +109,7 @@ bot.destroy();
     qaEndpoint: 'https://your-api.com/chat',
     ratingEndpoint: 'https://your-api.com/rating',
     welcomeMessage: "Hello! How can I help you today?",
+    isLoggedIn: true,
     primaryColor: '#24292e',
     secondaryColor: '#586069',
     botName: 'Demo Assistant',
@@ -119,53 +127,72 @@ bot.destroy();
 | `apiKey` | string | ✅ | API key for your Q&A service |
 | `qaEndpoint` | string | ✅ | Q&A API endpoint URL |
 | `welcomeMessage` | string | ✅ | Initial greeting message |
+| `isLoggedIn` | boolean | ✅ | Whether the user is logged in. Controls header icon and Q&A access gating |
 | `ratingEndpoint` | string | ❌ | Rating API endpoint URL (enables thumbs up/down) |
-| `enabled` | boolean | ❌ | Enable/disable chat input (default: `true`). When `false`, shows login button in header |
-| `loginUrl` | string | ❌ | Login URL to redirect to when chat is disabled (default: `/login`) |
+| `allowAnonAccess` | boolean | ❌ | Allow Q&A access even when not logged in (default: `false`) |
+| `actingUser` | string | ❌ | Acting user identifier sent to backend as `X-Acting-User` header and `acting_user` body field |
+| `loginUrl` | string | ❌ | Login URL for the login button when not logged in (default: `/login`) |
 | `open` | boolean | ❌ | Control chat window open/closed state |
 | `onOpenChange` | function | ❌ | Callback when chat window state changes: `(open: boolean) => void` |
 | `primaryColor` | string | ❌ | Main theme color (default: `#1a5b6e`) |
 | `secondaryColor` | string | ❌ | Secondary theme color (default: `#107180`) |
 | `botName` | string | ❌ | Bot display name (default: `Q&A Bot`) |
-| `logo` | string | ❌ | Bot avatar URL (default: `/default-chat-icon.svg`) |
+| `logo` | string | ❌ | Bot avatar URL (default: `/chat-icon.svg`) |
 | `placeholder` | string | ❌ | Input placeholder text |
 | `errorMessage` | string | ❌ | Error state message |
 | `tooltipText` | string | ❌ | Tooltip text for chat toggle |
 | `embedded` | boolean | ❌ | Embedded mode (default: `false`) |
 | `footerText` | string | ❌ | Footer text |
 | `footerLink` | string | ❌ | Footer link URL |
+| `customFlow` | Flow | ❌ | Custom flow steps to merge with built-in Q&A flow (see Custom Flows section) |
+| `onAnalyticsEvent` | function | ❌ | Analytics callback: `(event: QABotAnalyticsEvent) => void` |
 
 ## Features
 
 ### Login State Management
 
-The bot supports login/logout states through the `enabled` prop:
+The bot manages authentication state through the `isLoggedIn` prop:
 
-- **Enabled (`enabled={true}`)**: Shows user icon in header, chat input is active
-- **Disabled (`enabled={false}`)**: Shows login button in header, chat input is disabled
+- **Logged in (`isLoggedIn={true}`)**: Shows user icon in header, Q&A is fully accessible
+- **Not logged in (`isLoggedIn={false}`)**: Shows login button in header, Q&A is gated (prompts to log in)
 
 Example:
 ```jsx
-const [isLoggedIn, setIsLoggedIn] = useState(false);
+const [userLoggedIn, setUserLoggedIn] = useState(false);
 
 <QABot
   apiKey="your-api-key"
   qaEndpoint="https://your-api.com/chat"
   welcomeMessage="Hello! How can I help you today?"
-  enabled={isLoggedIn}
+  isLoggedIn={userLoggedIn}
   loginUrl="https://your-app.com/login"
 />
 ```
 
-When the user is not logged in (`enabled={false}`):
+When the user is not logged in (`isLoggedIn={false}`):
 - The login button appears in the chat header
 - Clicking it opens the `loginUrl` in a new tab
-- The chat input is disabled with the `errorMessage` shown as placeholder
+- Q&A flow is gated and prompts users to log in
 
-When the user is logged in (`enabled={true}`):
+When the user is logged in (`isLoggedIn={true}`):
 - A user icon appears in the chat header
-- The chat input becomes active
 - Users can ask questions normally
+
+#### Anonymous Access
+
+If you want to allow Q&A access without requiring login, use the `allowAnonAccess` prop:
+
+```jsx
+<QABot
+  apiKey="your-api-key"
+  qaEndpoint="https://your-api.com/chat"
+  welcomeMessage="Hello! How can I help you today?"
+  isLoggedIn={false}
+  allowAnonAccess={true}
+/>
+```
+
+This bypasses the login gate for Q&A while still showing the login button in the header. Note that custom flows (if any) are unaffected by this setting.
 
 ### Chat Window Control
 
@@ -178,6 +205,7 @@ const [chatOpen, setChatOpen] = useState(false);
   apiKey="your-api-key"
   qaEndpoint="https://your-api.com/chat"
   welcomeMessage="Hello! How can I help you today?"
+  isLoggedIn={true}
   open={chatOpen}
   onOpenChange={setChatOpen}
 />
@@ -203,6 +231,7 @@ const botRef = useRef();
   apiKey="your-api-key"
   qaEndpoint="https://your-api.com/chat"
   welcomeMessage="Hello! How can I help you today?"
+  isLoggedIn={true}
 />
 
 // Available methods:
@@ -236,12 +265,115 @@ Example of embedded mode:
     apiKey="your-api-key"
     qaEndpoint="https://your-api.com/chat"
     welcomeMessage="Hello! How can I help you today?"
+    isLoggedIn={true}
     embedded={true}
   />
 </div>
 ```
 
 **Note:** When `embedded={true}`, the `open` and `onOpenChange` props are ignored, and the imperative methods `openChat()`, `closeChat()`, and `toggleChat()` have no effect.
+
+### Custom Flows
+
+You can extend the bot with custom flow steps using the `customFlow` prop. This allows you to add ticket creation, feedback forms, or other interactive workflows that merge with the built-in Q&A flow.
+
+```jsx
+import QABot from '@snf/qa-bot-core';
+
+const myCustomFlow = {
+  submit_ticket: {
+    message: "I'll help you submit a ticket. What's the issue?",
+    path: "ticket_details"
+  },
+  ticket_details: {
+    message: "Thanks! Your ticket has been submitted.",
+    path: "start"
+  }
+};
+
+<QABot
+  apiKey="your-api-key"
+  qaEndpoint="https://your-api.com/chat"
+  welcomeMessage="Hello! How can I help you today?"
+  isLoggedIn={true}
+  customFlow={myCustomFlow}
+/>
+```
+
+Custom flows are merged into the flow object, so your custom steps can reference built-in steps and vice versa.
+
+#### Flow Settings Utility
+
+When building custom flows, you may encounter a react-chatbotify quirk where `chatDisabled` state persists across step transitions. The `applyFlowSettings` utility helps manage this:
+
+```javascript
+import { applyFlowSettings } from '@snf/qa-bot-core';
+
+const myFlow = {
+  choose_option: {
+    message: "Select an option:",
+    options: ["Option A", "Option B"],
+    path: "next_step"
+  },
+  next_step: {
+    message: "You selected an option!",
+    path: "start"
+  }
+};
+
+// Auto-disable chat input on steps with options/checkboxes
+const processedFlow = applyFlowSettings(myFlow, {
+  disableOnOptions: true
+});
+
+<QABot
+  // ...other props
+  customFlow={processedFlow}
+/>
+```
+
+The `disableOnOptions: true` setting automatically sets `chatDisabled: true` for steps that have `options` or `checkboxes`, and `chatDisabled: false` for steps without them (unless you've explicitly set `chatDisabled` yourself).
+
+#### History Tracking for Custom Flows
+
+When building custom flows, you may want certain important messages to be saved in session history so they can be restored when a user revisits a previous session. By default, messages defined with the `message:` property in flow steps may not be tracked in history.
+
+Use the `withHistory` and `withHistoryFn` helpers to ensure messages are tracked:
+
+```javascript
+import { withHistory, withHistoryFn } from '@snf/qa-bot-core';
+
+const myFlow = {
+  // Static message - use withHistory()
+  ask_email: {
+    message: withHistory("Please enter your email address:"),
+    path: "next_step"
+  },
+
+  // Dynamic message - use withHistoryFn()
+  show_summary: {
+    message: withHistoryFn(() => {
+      const data = getFormData();
+      return `Summary:\nName: ${data.name}\nEmail: ${data.email}`;
+    }),
+    options: ["Submit", "Cancel"],
+    path: "submit"
+  },
+
+  // Success message with important data (e.g., ticket links)
+  success: {
+    message: withHistoryFn(() => generateSuccessMessage(result)),
+    options: ["Back to Menu"],
+    path: "start"
+  }
+};
+```
+
+**When to use these helpers:**
+- `withHistory(string)` - For static messages you want restored in history
+- `withHistoryFn(fn)` - For dynamic/computed messages (summaries, API responses with links)
+
+**Tip:** You don't need to wrap every message - only the important ones that would be valuable when restoring a session (like ticket confirmations, summaries, or API responses).
 
 ### Session Management
 
@@ -263,6 +395,69 @@ The session ID persists across page refreshes, but clicking "New Chat" creates a
 - Starting a new topic without the bot referencing previous context
 - Resetting conversation state
 - Allowing users to have multiple distinct conversations
+
+### Analytics Events
+
+The bot fires analytics events via an optional callback prop, allowing you to wire up GTM, GA4, or any analytics provider without adding dependencies to the library.
+
+```jsx
+<QABot
+  apiKey="your-api-key"
+  qaEndpoint="https://your-api.com/chat"
+  welcomeMessage="Hello! How can I help you today?"
+  isLoggedIn={true}
+  onAnalyticsEvent={(event) => {
+    // Push to GTM dataLayer
+    window.dataLayer?.push({
+      event: event.type,
+      ...event
+    });
+  }}
+/>
+```
+
+**Event Types:**
+
+| Event | When Fired | Key Fields |
+|-------|------------|------------|
+| `chatbot_open` | Chat window opened | `sessionId` |
+| `chatbot_close` | Chat window closed | `sessionId`, `messageCount`, `durationMs` |
+| `chatbot_new_chat` | User clicks "New Chat" | `sessionId`, `previousMessageCount` |
+| `chatbot_question_sent` | User submits question | `sessionId`, `queryId`, `questionLength` |
+| `chatbot_answer_received` | API returns response | `sessionId`, `queryId`, `responseTimeMs`, `responseLength`, `hasMetadata` |
+| `chatbot_answer_error` | API call fails | `sessionId`, `queryId`, `errorType` |
+| `chatbot_rating_sent` | User rates response | `sessionId`, `queryId`, `rating` |
+| `chatbot_login_prompt_shown` | Login gate displayed | `sessionId` |
+
+All events include `type` and `timestamp`. The `sessionId` is auto-injected when available.
+
+**TypeScript:**
+
+```typescript
+import type { QABotAnalyticsEvent, QABotAnalyticsEventType } from '@snf/qa-bot-core';
+```
+
+### Debug Logging
+
+The bot includes a lightweight logging utility that's disabled by default but can be enabled at runtime for troubleshooting. Logs are controlled via `localStorage`, making it easy to debug in any environment (including production) without rebuilding.
+
+**Enable debug logging:**
+```javascript
+localStorage.setItem('QA_BOT_DEBUG', 'true');
+```
+
+**Disable debug logging (default):**
+```javascript
+localStorage.removeItem('QA_BOT_DEBUG');
+```
+
+When enabled, you'll see styled console output for:
+- Library version on load
+- Session lifecycle events (CREATED, RESET, RESTORED)
+- History operations (message tracking, session restore)
+- Message tracking (which messages are being saved to history)
+
+Errors and warnings always display regardless of the debug flag.
 
 ## API Requirements
 
@@ -323,7 +518,7 @@ The demo runs at `http://localhost:3000` and includes:
 - Displays API endpoints for verification
 
 **Dynamic Props**
-- Toggle `enabled` prop to simulate login/logout states
+- Toggle `isLoggedIn` prop to simulate login/logout states
 - Toggle `open` prop to control chat window state
 - Toggle `embedded` prop to switch between floating and embedded modes
 

@@ -3,21 +3,76 @@ import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { getProcessedText } from '../getProcessedText';
 import LoginButton from '../../components/LoginButton';
+import { logger } from '../logger';
+import type { AnalyticsEventInput } from '../../contexts/AnalyticsContext';
+
+/**
+ * Configuration for creating a Q&A flow
+ */
+export interface CreateQAFlowParams {
+  /** Q&A API endpoint (required) */
+  endpoint: string;
+  /** Rating API endpoint (optional) */
+  ratingEndpoint?: string;
+  /** API key for authentication (optional) */
+  apiKey?: string;
+  /** Function that returns current session ID */
+  sessionId: () => string | null;
+  /** Function that returns whether we're currently resetting */
+  isResetting?: () => boolean;
+  /** Whether the user is logged in (required) */
+  isLoggedIn: boolean;
+  /** Allow Q&A without login (default: false) */
+  allowAnonAccess?: boolean;
+  /** Login URL to redirect to (optional) */
+  loginUrl?: string;
+  /**
+   * The acting user's identifier.
+   * @deprecated Identity is now determined server-side from the JWT cookie.
+   * This prop is ignored — retained only for backward compatibility during transition.
+   */
+  actingUser?: string;
+  /** Enriched analytics tracker (adds common fields automatically) */
+  trackEvent?: (event: AnalyticsEventInput) => void;
+}
+
+/**
+ * Builds a plain text string for displaying response metadata.
+ * Returns empty string if no metadata is present.
+ */
+function buildMetadataText(body: {
+  confidence?: string;
+  tools_used?: string[];
+  metadata?: Record<string, unknown>;
+}): string {
+  const { confidence, tools_used, metadata } = body;
+
+  // Skip if no metadata present
+  if (!confidence && (!tools_used || tools_used.length === 0)) {
+    return '';
+  }
+
+  const parts: string[] = [];
+
+  if (confidence) {
+    parts.push(`• Confidence: ${confidence}`);
+  }
+
+  if (tools_used && tools_used.length > 0) {
+    parts.push(`• Tools used: ${tools_used.join(', ')}`);
+  }
+
+  // Show agent name from metadata (useful for demo/debugging)
+  if (metadata?.agent) {
+    parts.push(`• Agent: ${metadata.agent}`);
+  }
+
+  return `---\n${parts.join('\n')}`;
+}
 
 /**
  * Creates the basic Q&A conversation flow
  * Handles questions, responses, and optional ratings
- *
- * @param {Object} params Configuration
- * @param {string} params.endpoint Q&A API endpoint (required)
- * @param {string} params.ratingEndpoint Rating API endpoint (optional)
- * @param {string} params.apiKey API key for authentication (optional)
- * @param {Function} params.sessionId Function that returns current session ID
- * @param {Function} params.isResetting Function that returns whether we're currently resetting
- * @param {boolean} params.isLoggedIn Whether the user is logged in (required)
- * @param {boolean} params.allowAnonAccess Allow Q&A without login (default: false)
- * @param {string} params.loginUrl Login URL to redirect to (optional)
- * @returns {Object} Q&A flow configuration
  */
 export const createQAFlow = ({
   endpoint,
@@ -27,10 +82,15 @@ export const createQAFlow = ({
   isResetting = () => false,
   isLoggedIn,
   allowAnonAccess = false,
-  loginUrl = '/login'
-}) => {
+  loginUrl = '/login',
+  actingUser,
+  trackEvent
+}: CreateQAFlowParams) => {
   // Gate Q&A when user is logged out (unless allowAnonAccess is true)
   if (isLoggedIn === false && !allowAnonAccess) {
+    // Track that login prompt was shown
+    trackEvent?.({ type: 'chatbot_login_prompt_shown' });
+
     return {
       qa_loop: {
         message: "To ask questions, please log in first.",
@@ -90,14 +150,22 @@ export const createQAFlow = ({
               await fetch(ratingEndpoint, {
                 method: 'POST',
                 headers,
+                credentials: 'include',
                 body: JSON.stringify({
                   sessionId: currentSessionId,
                   queryId: feedbackQueryId,
                   rating: isPositive ? 1 : 0
                 })
               });
+
+              // Track rating event
+              trackEvent?.({
+                type: 'chatbot_rating_sent',
+                queryId: feedbackQueryId,
+                rating: isPositive ? 'helpful' : 'not_helpful'
+              });
             } catch (error) {
-              console.error('Error sending feedback:', error);
+              logger.error('Error sending feedback:', error);
             }
           }
 
@@ -108,6 +176,13 @@ export const createQAFlow = ({
         try {
           const queryId = uuidv4();
           feedbackQueryId = queryId;
+
+          // Track question asked
+          trackEvent?.({
+            type: 'chatbot_question_sent',
+            queryId,
+            questionLength: userInput.length
+          });
 
           const headers = {
             'Content-Type': 'application/json'
@@ -122,16 +197,31 @@ export const createQAFlow = ({
             headers['X-Session-ID'] = currentSessionId;
             headers['X-Query-ID'] = queryId;
           }
+          // Build request body
+          const requestBody: Record<string, string> = {
+            query: userInput,
+            session_id: currentSessionId,
+            question_id: queryId
+          };
+
+          // Log the session ID being sent
+          logger.session('SENT to API', {
+            session_id: currentSessionId,
+            question_id: queryId
+          });
+
+          // Capture timestamp before fetch for response time calculation
+          const requestStartTime = Date.now();
 
           const response = await fetch(endpoint, {
             method: 'POST',
             headers,
-            body: JSON.stringify({
-              query: userInput,
-              session_id: currentSessionId,
-              question_id: queryId
-            })
+            credentials: 'include',
+            body: JSON.stringify(requestBody)
           });
+
+          // Calculate response time (network + server processing)
+          const responseTimeMs = Date.now() - requestStartTime;
 
           if (!response.ok) {
             throw new Error(`API returned ${response.status}`);
@@ -149,8 +239,22 @@ export const createQAFlow = ({
           // Process text (handles markdown, links, etc.)
           const processedText = getProcessedText(text);
 
+          // Build metadata text (empty string if no metadata present)
+          const metadataText = buildMetadataText(body);
+          const fullContent = metadataText ? `${processedText}\n\n${metadataText}` : processedText;
+
           // Inject the response
-          await chatState.injectMessage(processedText);
+          await chatState.injectMessage(fullContent);
+
+          // Track response received
+          trackEvent?.({
+            type: 'chatbot_answer_received',
+            queryId,
+            responseTimeMs,
+            success: true,
+            responseLength: text.length,
+            hasMetadata: !!metadataText
+          });
 
           // Mark that we've shown a response
           hasShownResponse = true;
@@ -162,7 +266,15 @@ export const createQAFlow = ({
 
           return null;
         } catch (error) {
-          console.error('Error in Q&A flow:', error);
+          logger.error('Error in Q&A flow:', error);
+
+          // Track error event
+          trackEvent?.({
+            type: 'chatbot_answer_error',
+            queryId: feedbackQueryId ?? undefined,
+            errorType: error instanceof Error ? error.message : 'unknown'
+          });
+
           return "I apologize, but I'm having trouble processing your question. Please try again later.";
         }
       },
