@@ -374,3 +374,81 @@ code {
   background: #f5f5f5;
   border-radius: 4px;
 }
+
+/* ===== Clean branded view (default) ===== */
+
+.demo-clean {
+  background: linear-gradient(135deg, #f0f7f9 0%, #e8f0f2 100%);
+  align-items: center;
+  justify-content: center;
+}
+
+.demo-clean-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #1a5b6e;
+}
+
+.demo-clean-logo {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 8px;
+}
+
+.demo-clean-title {
+  font-size: 1.8em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.demo-clean-subtitle {
+  font-size: 1em;
+  color: #5a8a96;
+}
+
+/* Developer tools toggle button - bottom corner */
+.demo-devtools-toggle {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  padding: 8px 16px;
+  background: rgba(26, 91, 110, 0.08);
+  color: #1a5b6e;
+  border: 1px solid rgba(26, 91, 110, 0.2);
+  border-radius: 6px;
+  font-size: 0.8em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+}
+
+.demo-devtools-toggle:hover {
+  background: rgba(26, 91, 110, 0.15);
+  border-color: rgba(26, 91, 110, 0.4);
+}
+
+/* Header row with close button in dev tools view */
+.demo-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.demo-devtools-close {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.demo-devtools-close:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+}

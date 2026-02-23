@@ -75,6 +75,9 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     // Custom flow extension
     customFlow,
 
+    // Debug options
+    showMetadata = false,
+
     // Analytics callback
     onAnalyticsEvent
   } = props;
@@ -246,6 +249,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       allowAnonAccess: allowAnonAccess,
       loginUrl: loginUrl || defaultValues.loginUrl,
       actingUser: actingUser,
+      showMetadata: showMetadata,
       trackEvent: trackEvent
     });
 
@@ -263,7 +267,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       ...qaFlow,
       ...(customFlow || {})
     };
-  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, trackEvent]);
+  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, showMetadata, trackEvent]);
 
   // default react-chatbotify plugins
   const plugins = useMemo(() => {

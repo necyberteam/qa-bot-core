@@ -109,6 +109,12 @@ export interface QABotProps {
   customFlow?: Flow;
 
   /**
+   * Show response metadata (confidence, tools used, agent) in chat messages.
+   * Default: false. Useful for debugging/development.
+   */
+  showMetadata?: boolean;
+
+  /**
    * Callback fired when trackable events occur.
    * Use this to wire up analytics (GTM, GA4, etc.)
    *

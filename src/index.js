@@ -12,15 +12,13 @@ function ExampleApp() {
   const [userLoggedIn, setUserLoggedIn] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [embedded, setEmbedded] = useState(false);
+  const [showDevTools, setShowDevTools] = useState(false);
   const [messageToSend, setMessageToSend] = useState('Hello from the Chatbot');
   const botRef = useRef();
 
   // Read from environment variables
   const apiKey = process.env.REACT_APP_API_KEY || null;
   const qaEndpoint = process.env.REACT_APP_QA_ENDPOINT || null;
-  const ratingEndpoint = process.env.REACT_APP_RATING_ENDPOINT || null;
-
-  // Environment variables are now used directly
 
   const handleSendMessage = () => {
     if (botRef.current && messageToSend.trim()) {
@@ -33,11 +31,58 @@ function ExampleApp() {
     setEmbedded(newEmbedded);
   };
 
+  // Clean branded view (default)
+  if (!showDevTools) {
+    return (
+      <div className="demo-layout demo-clean">
+        <div className="demo-clean-center">
+          <img src="/chat-icon.svg" alt="" className="demo-clean-logo" />
+          <div className="demo-clean-title">Q&A Assistant</div>
+          <div className="demo-clean-subtitle">Ask anything — powered by AI</div>
+        </div>
+
+        <QABot
+          ref={botRef}
+          apiKey={apiKey}
+          qaEndpoint={qaEndpoint}
+
+          welcomeMessage="What can I help you with?"
+          botName="Q&A Assistant"
+          placeholder="Type your question here..."
+          tooltipText="Click to chat with our Q&A assistant!"
+          isLoggedIn={userLoggedIn}
+          open={chatOpen}
+          onOpenChange={setChatOpen}
+          embedded={false}
+          actingUser="demo-user@access-ci.org"
+          onAnalyticsEvent={handleAnalyticsEvent}
+        />
+
+        <button
+          className="demo-devtools-toggle"
+          onClick={() => setShowDevTools(true)}
+          title="Show developer tools"
+        >
+          Developer Tools
+        </button>
+      </div>
+    );
+  }
+
+  // Developer tools view (original layout)
   return (
     <div className="demo-layout">
       <div className="demo-header">
-        <div className="demo-title">
-          QA Bot Core: React Component Demo
+        <div className="demo-header-row">
+          <div className="demo-title">
+            QA Bot Core: React Component Demo
+          </div>
+          <button
+            className="demo-devtools-close"
+            onClick={() => setShowDevTools(false)}
+          >
+            Hide Dev Tools
+          </button>
         </div>
       </div>
 
@@ -65,16 +110,6 @@ function ExampleApp() {
               </div>
             </div>
 
-            <div className="config-item">
-              <div className="config-prop">Rating Endpoint</div>
-              <div className="config-value">
-                {ratingEndpoint ? '✓ Configured' : '✗ Not set'}
-              </div>
-              <div className="config-desc">
-                REACT_APP_RATING_ENDPOINT (optional)
-                {ratingEndpoint && <div style={{fontSize: '0.8em', marginTop: '4px', wordBreak: 'break-all'}}>{ratingEndpoint}</div>}
-              </div>
-            </div>
           </div>
 
           <div className="demo-section">
@@ -151,7 +186,7 @@ function ExampleApp() {
                 ref={botRef}
                 apiKey={apiKey}
                 qaEndpoint={qaEndpoint}
-                ratingEndpoint={ratingEndpoint}
+    
                 welcomeMessage="What can I help you with?"
                 botName="Q&A Assistant"
                 placeholder="Type your question here..."
@@ -161,6 +196,7 @@ function ExampleApp() {
                 onOpenChange={setChatOpen}
                 embedded={true}
                 actingUser="demo-user@access-ci.org"
+                showMetadata={showDevTools}
                 onAnalyticsEvent={handleAnalyticsEvent}
               />
             </div>
@@ -169,7 +205,7 @@ function ExampleApp() {
               <h2>Floating Mode Preview</h2>
               <p className="demo-help">Bot appears as a button in the bottom-right corner</p>
               <div className="floating-preview-placeholder">
-                <p>👉 Look for the chat button in the bottom-right corner of the page</p>
+                <p>Look for the chat button in the bottom-right corner of the page</p>
               </div>
             </div>
           )}
@@ -183,7 +219,6 @@ function ExampleApp() {
           ref={botRef}
           apiKey={apiKey}
           qaEndpoint={qaEndpoint}
-          ratingEndpoint={ratingEndpoint}
           welcomeMessage="What can I help you with?"
           botName="Q&A Assistant"
           placeholder="Type your question here..."
@@ -193,6 +228,7 @@ function ExampleApp() {
           onOpenChange={setChatOpen}
           embedded={false}
           actingUser="demo-user@access-ci.org"
+          showMetadata={showDevTools}
           onAnalyticsEvent={handleAnalyticsEvent}
         />
       )}

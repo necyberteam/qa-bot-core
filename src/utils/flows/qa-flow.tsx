@@ -32,6 +32,8 @@ export interface CreateQAFlowParams {
    * This prop is ignored — retained only for backward compatibility during transition.
    */
   actingUser?: string;
+  /** Show response metadata (confidence, tools, agent) in chat. Default: false */
+  showMetadata?: boolean;
   /** Enriched analytics tracker (adds common fields automatically) */
   trackEvent?: (event: AnalyticsEventInput) => void;
 }
@@ -84,6 +86,7 @@ export const createQAFlow = ({
   allowAnonAccess = false,
   loginUrl = '/login',
   actingUser,
+  showMetadata = false,
   trackEvent
 }: CreateQAFlowParams) => {
   // Gate Q&A when user is logged out (unless allowAnonAccess is true)
@@ -169,7 +172,7 @@ export const createQAFlow = ({
             }
           }
 
-          return "Thanks for the feedback! Feel free to ask another question.";
+          return "Thanks for the feedback!";
         }
 
         // Process as a question
@@ -239,8 +242,8 @@ export const createQAFlow = ({
           // Process text (handles markdown, links, etc.)
           const processedText = getProcessedText(text);
 
-          // Build metadata text (empty string if no metadata present)
-          const metadataText = buildMetadataText(body);
+          // Build metadata text (only when showMetadata is enabled)
+          const metadataText = showMetadata ? buildMetadataText(body) : '';
           const fullContent = metadataText ? `${processedText}\n\n${metadataText}` : processedText;
 
           // Inject the response
@@ -258,11 +261,6 @@ export const createQAFlow = ({
 
           // Mark that we've shown a response
           hasShownResponse = true;
-
-          // Add guidance message after a short delay
-          setTimeout(async () => {
-            await chatState.injectMessage("Feel free to ask another question.");
-          }, 100);
 
           return null;
         } catch (error) {
