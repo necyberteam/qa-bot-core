@@ -36,6 +36,8 @@ export interface CreateQAFlowParams {
    * This prop is ignored — retained only for backward compatibility during transition.
    */
   actingUser?: string;
+  /** Show response metadata (confidence, tools, agent) in chat. Default: false */
+  showMetadata?: boolean;
   /** Enriched analytics tracker (adds common fields automatically) */
   trackEvent?: (event: AnalyticsEventInput) => void;
   /**
@@ -189,6 +191,7 @@ export const createQAFlow = ({
   allowAnonAccess = false,
   loginUrl = '/login',
   actingUser,
+  showMetadata = false,
   trackEvent,
   getTurnstileToken,
   resetTurnstileToken,
@@ -371,7 +374,7 @@ export const createQAFlow = ({
       feedbackQueryId = savedQueryId;
 
       const processedText = getProcessedText(text);
-      const metadataText = isDebugEnabled() ? buildMetadataText(body) : '';
+      const metadataText = (showMetadata || isDebugEnabled()) ? buildMetadataText(body) : '';
       const fullContent = metadataText ? `${processedText}\n\n${metadataText}` : processedText;
 
       await injectMessage(fullContent);
@@ -702,8 +705,8 @@ export const createQAFlow = ({
           // Process text (handles markdown, links, etc.)
           const processedText = getProcessedText(text);
 
-          // Build metadata text (only shown when QA_BOT_DEBUG is enabled)
-          const metadataText = isDebugEnabled() ? buildMetadataText(body) : '';
+          // Build metadata text (when showMetadata or QA_BOT_DEBUG is enabled)
+          const metadataText = (showMetadata || isDebugEnabled()) ? buildMetadataText(body) : '';
           const fullContent = metadataText ? `${processedText}\n\n${metadataText}` : processedText;
 
           // Inject the response

@@ -87,6 +87,9 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     // Custom flow extension
     customFlow,
 
+    // Debug options
+    showMetadata = false,
+
     // Analytics callback
     onAnalyticsEvent
   } = props;
@@ -289,6 +292,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       allowAnonAccess: allowAnonAccess,
       loginUrl: loginUrl || defaultValues.loginUrl,
       actingUser: actingUser,
+      showMetadata: showMetadata,
       trackEvent: trackEvent,
       getTurnstileToken: () => turnstileTokenRef.current,
       resetTurnstileToken: () => turnstile.reset(),
@@ -315,7 +319,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     // the hook's object — which is a new reference each render — would recreate
     // the entire flow on every render and reset the conversation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, qaEndpoint, ratingEndpoint, agentRatingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, trackEvent, resourceContext, backendId]);
+  }, [apiKey, qaEndpoint, ratingEndpoint, agentRatingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, showMetadata, trackEvent, resourceContext, backendId]);
 
   // default react-chatbotify plugins
   const plugins = useMemo(() => {
