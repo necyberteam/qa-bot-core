@@ -43,13 +43,8 @@ const useChatBotSettings = ({ settings, themeColors }: UseChatBotSettingsProps):
       );
     }
 
-    // Apply embedded mode logic
-    if (settings.general?.embedded && settings.chatWindow) {
-      settings.chatWindow.defaultOpen = true;
-    }
-
-    // Note: Many accessibility properties we wanted are not supported by react-chatbotify's Settings interface
-    // Keeping this section minimal to match the actual API
+    // Note: embedded mode defaultOpen is now set in QABot useMemo to avoid
+    // mutating shared settings objects
 
     // Apply our fixed overrides (not configurable)
     settings.device = {
@@ -72,6 +67,7 @@ const useChatBotSettings = ({ settings, themeColors }: UseChatBotSettingsProps):
     // they're applied before first render
 
     settings.event = {
+      ...settings.event,
       rcbToggleChatWindow: true
     };
   }, [settings]);

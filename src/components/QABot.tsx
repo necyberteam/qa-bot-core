@@ -210,6 +210,13 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       buttons: [<NewChatButton key="new-chat-button" />]
     };
 
+    // Ensure chatWindow is a fresh object (not shared with fixedReactChatbotifySettings)
+    // and set defaultOpen based on embedded mode
+    base.chatWindow = {
+      ...base.chatWindow,
+      defaultOpen: isEmbeddedMode ? true : false
+    };
+
     // Enable events for message tracking
     base.event = {
       rcbPreInjectMessage: true,
