@@ -25,22 +25,20 @@ const BotController = forwardRef<BotControllerHandle, BotControllerProps>(({
   const messages = useMessages();
   const chatWindow = useChatWindow();
 
-  const lastOpenRef = useRef<boolean | null>(null); // Start with null to detect initial state
+  const lastOpenRef = useRef<boolean>(false); // Default matches defaultOpen: false
   const fromEventRef = useRef(false);
 
   // Sync open state with chat window when it changes (but not when change came from event)
   useEffect(() => {
     if (!embedded && chatWindow && chatWindow.toggleChatWindow) {
-      // Handle initial state and subsequent changes
       if (lastOpenRef.current !== currentOpen && !fromEventRef.current) {
-
         // Use a small delay to ensure chatWindow is fully initialized
         setTimeout(() => {
           if (chatWindow && chatWindow.toggleChatWindow) {
             chatWindow.toggleChatWindow(currentOpen);
           }
         }, 0);
-        lastOpenRef.current = currentOpen;
+        lastOpenRef.current = currentOpen ?? false;
       }
       fromEventRef.current = false;
     }
