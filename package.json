@@ -1,6 +1,6 @@
 {
   "name": "@snf/qa-bot-core",
-  "version": "0.2.24",
+  "version": "0.2.25",
   "description": "A configurable chatbot setup for quick integration of RAG-powered Q&A and rating system",
   "main": "./dist/qa-bot-core.umd.cjs",
   "module": "./dist/qa-bot-core.js",
@@ -21,7 +21,7 @@
     "@rcb-plugins/html-renderer": "^0.3.1",
     "@rcb-plugins/markdown-renderer": "^0.3.1",
     "@rcb-plugins/input-validator": "^0.3.0",
-    "react-chatbotify": "^2.2.0",
+    "react-chatbotify": "^2.5.0",
     "uuid": "^11.1.0"
   },
   "peerDependencies": {
