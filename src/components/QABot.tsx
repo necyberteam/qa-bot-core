@@ -281,6 +281,32 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
   useFocusableSendButton();
   useKeyboardNavigation();
 
+  // Track link clicks in bot messages via event delegation
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleLinkClick = (event: MouseEvent) => {
+      const anchor = (event.target as HTMLElement).closest?.('a');
+      if (!anchor) return;
+
+      // Only track links inside bot message bubbles
+      if (!anchor.closest('.rcb-bot-message')) return;
+
+      // Skip login button (tracked separately) and rating buttons
+      if (anchor.classList.contains('qa-bot-login-button')) return;
+
+      trackEvent({
+        type: 'chatbot_link_clicked',
+        linkUrl: anchor.href,
+        linkText: anchor.textContent?.trim() || ''
+      });
+    };
+
+    container.addEventListener('click', handleLinkClick);
+    return () => container.removeEventListener('click', handleLinkClick);
+  }, [trackEvent]);
+
   // Listen for chat window toggle events
   useEffect(() => {
     if (!isEmbeddedMode) {

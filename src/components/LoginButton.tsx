@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAnalytics } from '../contexts/AnalyticsContext';
 
 /**
  * LoginButton Component
@@ -25,6 +26,11 @@ const LoginButton: React.FC<LoginButtonProps> = ({
   style,
   isHeaderButton = false
 }) => {
+  const { trackEvent } = useAnalytics();
+
+  const handleClick = () => {
+    trackEvent({ type: 'chatbot_login_clicked', loginUrl });
+  };
   const headerStyle: React.CSSProperties = {
     display: 'inline-block',
     padding: '6px 12px',
@@ -75,6 +81,7 @@ const LoginButton: React.FC<LoginButtonProps> = ({
         rel="noopener noreferrer"
         className={`qa-bot-login-button ${isHeaderButton ? 'qa-bot-header-login-button' : ''} ${className}`}
         style={{ ...finalStyle, ...style }}
+        onClick={handleClick}
       >
         Log In
       </a>

@@ -11,7 +11,9 @@ export type QABotAnalyticsEventType =
   | 'chatbot_answer_received'
   | 'chatbot_answer_error'
   | 'chatbot_rating_sent'
-  | 'chatbot_login_prompt_shown';
+  | 'chatbot_login_prompt_shown'
+  | 'chatbot_login_clicked'
+  | 'chatbot_link_clicked';
 
 /**
  * Analytics event payload
@@ -31,6 +33,8 @@ export type QABotAnalyticsEventType =
  * - chatbot_answer_error: queryId, errorType
  * - chatbot_rating_sent: queryId, rating
  * - chatbot_login_prompt_shown: (common fields only)
+ * - chatbot_login_clicked: loginUrl
+ * - chatbot_link_clicked: linkUrl, linkText
  */
 export interface QABotAnalyticsEvent {
   type: QABotAnalyticsEventType;
@@ -57,6 +61,11 @@ export interface QABotAnalyticsEvent {
   durationMs?: number;
   // chatbot_new_chat
   previousMessageCount?: number;
+  // chatbot_login_clicked
+  loginUrl?: string;
+  // chatbot_link_clicked
+  linkUrl?: string;
+  linkText?: string;
 }
 
 export interface QABotProps {
