@@ -290,11 +290,13 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       const anchor = (event.target as HTMLElement).closest?.('a');
       if (!anchor) return;
 
-      // Only track links inside bot message bubbles
-      if (!anchor.closest('.rcb-bot-message')) return;
+      // Only track links inside the chat body (bot or user messages)
+      if (!anchor.closest('.rcb-chat-body-container')) return;
 
-      // Skip login button (tracked separately) and rating buttons
+      // Skip login button (tracked separately)
       if (anchor.classList.contains('qa-bot-login-button')) return;
+      // Skip option buttons
+      if (anchor.closest('.rcb-options-container')) return;
 
       trackEvent({
         type: 'chatbot_link_clicked',
