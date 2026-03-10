@@ -372,8 +372,11 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
               aria-label="Bot response updates"
               className="sr-only"
               id="bot-live-region"
+              style={{position:'absolute',width:'1px',height:'1px',padding:0,margin:'-1px',overflow:'hidden',clip:'rect(0,0,0,0)',whiteSpace:'nowrap',border:0}}
             />
-            <div id="chat-input-help" className="sr-only">
+            <div id="chat-input-help" className="sr-only"
+              style={{position:'absolute',width:'1px',height:'1px',padding:0,margin:'-1px',overflow:'hidden',clip:'rect(0,0,0,0)',whiteSpace:'nowrap',border:0}}
+            >
               Type your message and press Enter to send. Use arrow keys to navigate through response options.
             </div>
           </div>
