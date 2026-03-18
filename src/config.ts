@@ -170,7 +170,7 @@ export const fixedReactChatbotifySettings: Settings = {
   },
   chatInput: {
     disabled: false,
-    characterLimit: 1000,
+    characterLimit: 5000,
     showCharacterCount: false,
     allowNewline: true,
     blockSpam: false
