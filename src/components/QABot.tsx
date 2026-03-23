@@ -344,7 +344,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       className={`qa-bot ${settings.general?.embedded ? "embedded-qa-bot" : ""}`}
       ref={containerRef}
       role="region"
-      aria-label={botName || defaultValues.botName}
+      aria-label={`${botName || defaultValues.botName}${settings.general?.embedded ? " - Embedded" : ""}`}
     >
       <SessionProvider getSessionId={() => sessionIdRef.current!} setSessionId={setSessionId} resetSession={resetSession} clearResettingFlag={clearResettingFlag}>
         <AnalyticsProvider trackEvent={trackEvent}>

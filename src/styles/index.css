@@ -97,6 +97,15 @@
   max-width: 100%;
 }
 
+/* Ensure tooltip meets WCAG 2 AA contrast (4.5:1 minimum) */
+.rcb-chat-tooltip {
+  background-color: #1a5b6e;
+  color: #ffffff;
+}
+.rcb-chat-tooltip-tail {
+  border-color: transparent transparent transparent #1a5b6e;
+}
+
 /* unused "ringing phone" effect for the tooltip */
 @keyframes phone-ring {
   0% {
