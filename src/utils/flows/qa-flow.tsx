@@ -3,6 +3,7 @@ import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { getProcessedText } from '../getProcessedText';
 import LoginButton from '../../components/LoginButton';
+import TurnstileWidget from '../../components/TurnstileWidget';
 import { logger } from '../logger';
 import type { AnalyticsEventInput } from '../../contexts/AnalyticsContext';
 
@@ -71,6 +72,45 @@ function buildMetadataText(body: {
 }
 
 /**
+ * Wrapper that reads the Turnstile site key from mutable state at render time.
+ * The flow's component JSX is captured once at definition, but the site key
+ * isn't known until the API returns requires_turnstile. This wrapper bridges
+ * that gap by accepting a getter function.
+ */
+interface TurnstileState {
+  siteKey: string | null;
+  token: string | null;
+  pendingQuery: any;
+  needsChallenge: boolean;
+}
+
+interface TurnstileWidgetWrapperProps {
+  getState: () => TurnstileState;
+  trackEvent?: (event: AnalyticsEventInput) => void;
+}
+
+function TurnstileWidgetWrapper({ getState, trackEvent }: TurnstileWidgetWrapperProps) {
+  const state = getState();
+  if (!state.siteKey) return null;
+
+  return (
+    <TurnstileWidget
+      siteKey={state.siteKey}
+      onVerify={(token) => {
+        state.token = token;
+        trackEvent?.({ type: 'chatbot_turnstile_completed' });
+      }}
+      onError={() => {
+        state.token = null;
+        state.pendingQuery = null;
+        state.needsChallenge = false;
+        trackEvent?.({ type: 'chatbot_turnstile_error' });
+      }}
+    />
+  );
+}
+
+/**
  * Creates the basic Q&A conversation flow
  * Handles questions, responses, and optional ratings
  */
@@ -105,6 +145,16 @@ export const createQAFlow = ({
   let feedbackQueryId = null;
   // Track if we've shown a response to the user
   let hasShownResponse = false;
+
+  // Turnstile state — shared between qa_loop and turnstile_challenge steps.
+  // Uses a mutable object so the TurnstileWidget component can read the
+  // current siteKey at render time (not the value captured at flow creation).
+  const turnstileState = {
+    siteKey: null as string | null,
+    token: null as string | null,
+    pendingQuery: null as { query: string; sessionId: string; queryId: string } | null,
+    needsChallenge: false,
+  };
 
   // Require endpoint to be configured
   if (!endpoint) {
@@ -172,6 +222,80 @@ export const createQAFlow = ({
           return "Thanks for the feedback! Feel free to ask another question.";
         }
 
+        // If returning from Turnstile with a token, resend the pending query
+        if (turnstileState.token && turnstileState.pendingQuery) {
+          try {
+            const headers = {
+              'Content-Type': 'application/json'
+            };
+            if (apiKey) {
+              headers['X-API-KEY'] = apiKey;
+            }
+
+            const retryResponse = await fetch(endpoint, {
+              method: 'POST',
+              headers,
+              credentials: 'include',
+              body: JSON.stringify({
+                query: turnstileState.pendingQuery.query,
+                session_id: turnstileState.pendingQuery.sessionId,
+                question_id: turnstileState.pendingQuery.queryId,
+                turnstile_token: turnstileState.token
+              })
+            });
+
+            // Clear Turnstile state so the widget doesn't re-render
+            const savedQueryId = turnstileState.pendingQuery.queryId;
+            turnstileState.token = null;
+            turnstileState.pendingQuery = null;
+            turnstileState.needsChallenge = false;
+            turnstileState.siteKey = null;
+
+            if (!retryResponse.ok) {
+              throw new Error(`API returned ${retryResponse.status} after Turnstile`);
+            }
+
+            const body = await retryResponse.json();
+
+            if (body.requires_turnstile) {
+              return "Verification failed. Please try your question again.";
+            }
+
+            const text = body.response || body.answer || body.text || body.message;
+            if (!text) {
+              throw new Error('Invalid response format from API');
+            }
+
+            const processedText = getProcessedText(text);
+            const metadataText = buildMetadataText(body);
+            const fullContent = metadataText ? `${processedText}\n\n${metadataText}` : processedText;
+
+            await chatState.injectMessage(fullContent);
+
+            trackEvent?.({
+              type: 'chatbot_answer_received',
+              queryId: savedQueryId,
+              success: true,
+              responseLength: text.length,
+            });
+
+            hasShownResponse = true;
+
+            setTimeout(async () => {
+              await chatState.injectMessage("Feel free to ask another question.");
+            }, 100);
+
+            return null;
+          } catch (error) {
+            logger.error('Error resending after Turnstile:', error);
+            turnstileState.token = null;
+            turnstileState.pendingQuery = null;
+            turnstileState.needsChallenge = false;
+            turnstileState.siteKey = null;
+            return "I had trouble processing your question after verification. Please try again.";
+          }
+        }
+
         // Process as a question
         try {
           const queryId = uuidv4();
@@ -228,6 +352,15 @@ export const createQAFlow = ({
           }
 
           const body = await response.json();
+
+          // Turnstile challenge — store state and let path redirect to the challenge step
+          if (body.requires_turnstile) {
+            trackEvent?.({ type: 'chatbot_turnstile_shown', queryId });
+            turnstileState.siteKey = body.site_key;
+            turnstileState.pendingQuery = { query: userInput, sessionId: currentSessionId, queryId };
+            turnstileState.needsChallenge = true;
+            return "Please verify you're human to continue.";
+          }
 
           // Support different response formats
           const text = body.response || body.answer || body.text || body.message;
@@ -297,6 +430,12 @@ export const createQAFlow = ({
 
       renderMarkdown: ["BOT"],
       chatDisabled: false,
+      component: (
+        <TurnstileWidgetWrapper
+          getState={() => turnstileState}
+          trackEvent={trackEvent}
+        />
+      ),
       path: "qa_loop"
     }
   };
