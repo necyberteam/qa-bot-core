@@ -27,7 +27,7 @@ export function loadTurnstileScript(): Promise<void> {
     script.async = true;
     script.onload = () => {
       scriptLoaded = true;
-      logger.info?.('Turnstile script loaded');
+      logger.turnstile('Script loaded');
       resolve();
     };
     script.onerror = () => {
@@ -89,7 +89,7 @@ export function renderTurnstileWidget(siteKey: string): Promise<string> {
         turnstile.render(widgetContainer, {
           sitekey: siteKey,
           callback: (token: string) => {
-            logger.info?.('Turnstile verification complete');
+            logger.turnstile('Verification complete');
             resolve(token);
           },
           'error-callback': () => {

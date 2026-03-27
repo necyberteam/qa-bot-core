@@ -51,6 +51,7 @@ interface QABotConfig {
   embedded?: boolean;
   isLoggedIn: boolean;
   allowAnonAccess?: boolean;
+  turnstileSiteKey?: string;
   welcomeMessage: string;
   primaryColor?: string;
   secondaryColor?: string;
@@ -81,6 +82,7 @@ interface ProgrammaticQABotProps {
   embedded?: boolean;
   isLoggedIn: boolean;
   allowAnonAccess?: boolean;
+  turnstileSiteKey?: string;
   welcomeMessage: string;
   primaryColor?: string;
   secondaryColor?: string;
@@ -144,6 +146,7 @@ const ProgrammaticQABot = React.forwardRef<BotControllerHandle, ProgrammaticQABo
         embedded={props.embedded}
         isLoggedIn={props.isLoggedIn}
         allowAnonAccess={props.allowAnonAccess}
+        turnstileSiteKey={props.turnstileSiteKey}
         open={isOpen}
         onOpenChange={setIsOpen}
         footerText={props.footerText}
@@ -183,6 +186,7 @@ export function qaBot(config: QABotConfig): QABotInstance | undefined {
         embedded={config.embedded}
         isLoggedIn={config.isLoggedIn}
         allowAnonAccess={config.allowAnonAccess}
+        turnstileSiteKey={config.turnstileSiteKey}
         welcomeMessage={config.welcomeMessage}
         primaryColor={config.primaryColor}
         secondaryColor={config.secondaryColor}

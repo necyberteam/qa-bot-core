@@ -32,7 +32,7 @@ const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({ siteKey, onVerify, on
         turnstile.render(containerRef.current, {
           sitekey: siteKey,
           callback: (token: string) => {
-            logger.info?.('Turnstile verification complete');
+            logger.turnstile('Visible challenge completed');
             onVerify(token);
           },
           'error-callback': () => {

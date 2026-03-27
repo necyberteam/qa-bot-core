@@ -13,7 +13,10 @@ export type QABotAnalyticsEventType =
   | 'chatbot_rating_sent'
   | 'chatbot_login_prompt_shown'
   | 'chatbot_login_clicked'
-  | 'chatbot_link_clicked';
+  | 'chatbot_link_clicked'
+  | 'chatbot_turnstile_shown'
+  | 'chatbot_turnstile_completed'
+  | 'chatbot_turnstile_error';
 
 /**
  * Analytics event payload
@@ -109,6 +112,17 @@ export interface QABotProps {
    * - Optional: if not provided, requests will be anonymous
    */
   actingUser?: string;
+
+  /**
+   * Cloudflare Turnstile site key for bot protection.
+   * When provided, an invisible Turnstile widget is rendered on mount
+   * to silently verify the user.  The token is attached to every query
+   * automatically.  If silent verification fails, the backend's
+   * visible-challenge flow kicks in as a fallback.
+   *
+   * Omit or pass empty string to disable Turnstile entirely on the frontend.
+   */
+  turnstileSiteKey?: string;
 
   /**
    * Custom flow steps to merge with the built-in Q&A flow.

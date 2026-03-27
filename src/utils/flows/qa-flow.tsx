@@ -35,6 +35,13 @@ export interface CreateQAFlowParams {
   actingUser?: string;
   /** Enriched analytics tracker (adds common fields automatically) */
   trackEvent?: (event: AnalyticsEventInput) => void;
+  /**
+   * Returns the current silent Turnstile token (from useTurnstile hook).
+   * When available, attached to every request so the backend can verify
+   * without prompting.  When null, the backend's free-query allowance
+   * applies, and the visible challenge is the fallback.
+   */
+  getTurnstileToken?: () => string | null;
 }
 
 /**
@@ -124,7 +131,8 @@ export const createQAFlow = ({
   allowAnonAccess = false,
   loginUrl = '/login',
   actingUser,
-  trackEvent
+  trackEvent,
+  getTurnstileToken,
 }: CreateQAFlowParams) => {
   // Gate Q&A when user is logged out (unless allowAnonAccess is true)
   if (isLoggedIn === false && !allowAnonAccess) {
@@ -321,12 +329,16 @@ export const createQAFlow = ({
             headers['X-Session-ID'] = currentSessionId;
             headers['X-Query-ID'] = queryId;
           }
-          // Build request body
+          // Build request body — include silent Turnstile token when available
           const requestBody: Record<string, string> = {
             query: userInput,
             session_id: currentSessionId,
             question_id: queryId
           };
+          const silentToken = getTurnstileToken?.();
+          if (silentToken) {
+            requestBody.turnstile_token = silentToken;
+          }
 
           // Log the session ID being sent
           logger.session('SENT to API', {
