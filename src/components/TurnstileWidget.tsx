@@ -53,7 +53,7 @@ const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({ siteKey, onVerify, on
 
   return (
     <div style={{ padding: '8px 16px' }}>
-      <div ref={containerRef} />
+      <div ref={containerRef} style={{ borderRadius: '8px', overflow: 'hidden' }} />
     </div>
   );
 };
