@@ -436,6 +436,11 @@ export const createQAFlow = ({
           return [];
         }
 
+        // Don't show options during Turnstile challenge
+        if (turnstileState.needsChallenge) {
+          return [];
+        }
+
         // Only show rating options if endpoint is configured AND we've shown a response
         return (ratingEndpoint && hasShownResponse) ? ["👍 Helpful", "👎 Not helpful"] : [];
       },
