@@ -94,11 +94,47 @@ interface TurnstileState {
 interface TurnstileWidgetWrapperProps {
   getState: () => TurnstileState;
   trackEvent?: (event: AnalyticsEventInput) => void;
+  loginUrl: string;
 }
 
-function TurnstileWidgetWrapper({ getState, trackEvent }: TurnstileWidgetWrapperProps) {
+function TurnstileWidgetWrapper({ getState, trackEvent, loginUrl }: TurnstileWidgetWrapperProps) {
+  const [failed, setFailed] = React.useState(false);
   const state = getState();
+
+  // If the invisible widget hasn't produced a token within 5s, give up and show guidance
+  React.useEffect(() => {
+    if (!state.siteKey) return;
+    setFailed(false);
+    const timer = setTimeout(() => {
+      if (!state.token) {
+        setFailed(true);
+        trackEvent?.({ type: 'chatbot_turnstile_error' });
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [state.siteKey]);
+
   if (!state.siteKey) return null;
+
+  if (failed) {
+    return (
+      <div style={{ padding: '8px 16px', fontSize: '14px', lineHeight: '1.5' }}>
+        <p style={{ margin: 0 }}>
+          I'm having trouble verifying your session. Please try{' '}
+          <a href="" onClick={(e) => { e.preventDefault(); window.location.reload(); }}
+            style={{ color: 'var(--primaryColor, #107180)' }}>
+            refreshing the page
+          </a>
+          , or{' '}
+          <a href={loginUrl} target="_blank" rel="noopener noreferrer"
+            style={{ color: 'var(--primaryColor, #107180)', fontWeight: 'bold' }}>
+            log in
+          </a>{' '}
+          to continue.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <TurnstileWidget
@@ -108,9 +144,7 @@ function TurnstileWidgetWrapper({ getState, trackEvent }: TurnstileWidgetWrapper
         trackEvent?.({ type: 'chatbot_turnstile_completed' });
       }}
       onError={() => {
-        state.token = null;
-        state.pendingQuery = null;
-        state.needsChallenge = false;
+        setFailed(true);
         trackEvent?.({ type: 'chatbot_turnstile_error' });
       }}
     />
@@ -371,7 +405,7 @@ export const createQAFlow = ({
             turnstileState.siteKey = body.site_key;
             turnstileState.pendingQuery = { query: userInput, sessionId: currentSessionId, queryId };
             turnstileState.needsChallenge = true;
-            return "Please verify you're human to continue.";
+            return "One moment — verifying your session…";
           }
 
           // Support different response formats
@@ -451,6 +485,7 @@ export const createQAFlow = ({
         <TurnstileWidgetWrapper
           getState={() => turnstileState}
           trackEvent={trackEvent}
+          loginUrl={loginUrl}
         />
       ),
       path: "qa_loop"
