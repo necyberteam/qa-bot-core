@@ -45,6 +45,8 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
 
     // Optional functionality
     ratingEndpoint,
+    capabilitiesEndpoint,
+    agentRatingEndpoint,
     welcomeMessage,
     open,
     onOpenChange,
@@ -256,6 +258,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     const qaFlow = createQAFlow({
       endpoint: qaEndpoint,
       ratingEndpoint: ratingEndpoint,
+      agentRatingEndpoint: agentRatingEndpoint,
       apiKey: apiKey,
       sessionId: sessionGetter.current.getSessionId,
       isResetting: sessionGetter.current.isResetting,
@@ -281,7 +284,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       ...qaFlow,
       ...(customFlow || {})
     };
-  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, trackEvent]);
+  }, [apiKey, qaEndpoint, ratingEndpoint, agentRatingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, trackEvent]);
 
   // default react-chatbotify plugins
   const plugins = useMemo(() => {

@@ -13,8 +13,10 @@ import type { AnalyticsEventInput } from '../../contexts/AnalyticsContext';
 export interface CreateQAFlowParams {
   /** Q&A API endpoint (required) */
   endpoint: string;
-  /** Rating API endpoint (optional) */
+  /** Rating API endpoint for RAG responses (optional) */
   ratingEndpoint?: string;
+  /** Rating API endpoint for agent responses (optional) */
+  agentRatingEndpoint?: string;
   /** API key for authentication (optional) */
   apiKey?: string;
   /** Function that returns current session ID */
@@ -158,6 +160,7 @@ function TurnstileWidgetWrapper({ getState, trackEvent, loginUrl }: TurnstileWid
 export const createQAFlow = ({
   endpoint,
   ratingEndpoint,
+  agentRatingEndpoint,
   apiKey,
   sessionId: getSessionId,
   isResetting = () => false,
@@ -184,9 +187,10 @@ export const createQAFlow = ({
   }
 
   // Track query ID for feedback
-  let feedbackQueryId = null;
-  // Track if we've shown a response to the user
-  let hasShownResponse = false;
+  let feedbackQueryId: string | null = null;
+  // Track response metadata for rating routing
+  let lastRatingTarget: string | null = null;
+  let lastIsFinalResponse = false;
 
   // Turnstile state — shared between qa_loop and turnstile_challenge steps.
   // Uses a mutable object so the TurnstileWidget component can read the
@@ -218,46 +222,56 @@ export const createQAFlow = ({
           return null;
         }
 
-        // Handle feedback if rating endpoint is configured
+        // Handle feedback — route to correct endpoint based on rating_target
         if (userInput === "👍 Helpful" || userInput === "👎 Not helpful") {
-          if (ratingEndpoint && feedbackQueryId) {
-            try {
-              const isPositive = userInput === "👍 Helpful";
-              const headers = {
-                'Content-Type': 'application/json'
-              };
+          if (feedbackQueryId) {
+            const isPositive = userInput === "👍 Helpful";
+            const targetEndpoint = lastRatingTarget === 'agent' ? agentRatingEndpoint : ratingEndpoint;
 
-              // Add API key if provided
-              if (apiKey) {
-                headers['X-API-KEY'] = apiKey;
-              }
+            if (targetEndpoint) {
+              try {
+                const headers: Record<string, string> = {
+                  'Content-Type': 'application/json'
+                };
 
-              // Add session tracking if available
-              const currentSessionId = getSessionId();
-              if (currentSessionId) {
-                headers['X-Session-ID'] = currentSessionId;
-                headers['X-Query-ID'] = feedbackQueryId;
-              }
+                if (apiKey) {
+                  headers['X-API-KEY'] = apiKey;
+                }
 
-              await fetch(ratingEndpoint, {
-                method: 'POST',
-                headers,
-                credentials: 'include',
-                body: JSON.stringify({
-                  sessionId: currentSessionId,
+                const currentSessionId = getSessionId();
+                if (currentSessionId) {
+                  headers['X-Session-ID'] = currentSessionId;
+                  headers['X-Query-ID'] = feedbackQueryId;
+                }
+
+                // Agent endpoint uses different payload shape
+                const body = lastRatingTarget === 'agent'
+                  ? {
+                      query_id: feedbackQueryId,
+                      rating: isPositive ? 'helpful' : 'not_helpful',
+                      session_id: currentSessionId,
+                    }
+                  : {
+                      sessionId: currentSessionId,
+                      queryId: feedbackQueryId,
+                      rating: isPositive ? 1 : 0,
+                    };
+
+                await fetch(targetEndpoint, {
+                  method: 'POST',
+                  headers,
+                  credentials: 'include',
+                  body: JSON.stringify(body)
+                });
+
+                trackEvent?.({
+                  type: 'chatbot_rating_sent',
                   queryId: feedbackQueryId,
-                  rating: isPositive ? 1 : 0
-                })
-              });
-
-              // Track rating event
-              trackEvent?.({
-                type: 'chatbot_rating_sent',
-                queryId: feedbackQueryId,
-                rating: isPositive ? 'helpful' : 'not_helpful'
-              });
-            } catch (error) {
-              logger.error('Error sending feedback:', error);
+                  rating: isPositive ? 'helpful' : 'not_helpful'
+                });
+              } catch (error) {
+                logger.error('Error sending feedback:', error);
+              }
             }
           }
 
@@ -308,6 +322,11 @@ export const createQAFlow = ({
               throw new Error('Invalid response format from API');
             }
 
+            // Capture response metadata for rating routing
+            const retryMetadata = body.metadata || {};
+            lastRatingTarget = retryMetadata.rating_target || null;
+            lastIsFinalResponse = retryMetadata.is_final_response === true;
+
             const processedText = getProcessedText(text);
             const metadataText = buildMetadataText(body);
             const fullContent = metadataText ? `${processedText}\n\n${metadataText}` : processedText;
@@ -320,8 +339,6 @@ export const createQAFlow = ({
               success: true,
               responseLength: text.length,
             });
-
-            hasShownResponse = true;
 
             setTimeout(async () => {
               await chatState.injectMessage("Feel free to ask another question.");
@@ -415,6 +432,11 @@ export const createQAFlow = ({
             throw new Error('Invalid response format from API');
           }
 
+          // Capture response metadata for rating routing
+          const metadata = body.metadata || {};
+          lastRatingTarget = metadata.rating_target || null;
+          lastIsFinalResponse = metadata.is_final_response === true;
+
           // Process text (handles markdown, links, etc.)
           const processedText = getProcessedText(text);
 
@@ -434,9 +456,6 @@ export const createQAFlow = ({
             responseLength: text.length,
             hasMetadata: !!metadataText
           });
-
-          // Mark that we've shown a response
-          hasShownResponse = true;
 
           // Add guidance message after a short delay
           setTimeout(async () => {
@@ -458,7 +477,7 @@ export const createQAFlow = ({
         }
       },
 
-      // Show rating options only if rating endpoint is configured and we've shown a response
+      // Show rating options only after final responses that have a valid rating target
       options: (chatState) => {
         // Don't show options if we're resetting
         if (isResetting && isResetting()) {
@@ -475,8 +494,18 @@ export const createQAFlow = ({
           return [];
         }
 
-        // Only show rating options if endpoint is configured AND we've shown a response
-        return (ratingEndpoint && hasShownResponse) ? ["👍 Helpful", "👎 Not helpful"] : [];
+        // Only show rating buttons when:
+        // 1. The response was marked as final (is_final_response: true)
+        // 2. A rating endpoint exists for the response's rating_target
+        if (!lastIsFinalResponse) {
+          return [];
+        }
+
+        const hasEndpoint = lastRatingTarget === 'agent'
+          ? !!agentRatingEndpoint
+          : !!ratingEndpoint;
+
+        return hasEndpoint ? ["👍 Helpful", "👎 Not helpful"] : [];
       },
 
       renderMarkdown: ["BOT"],

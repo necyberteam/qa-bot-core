@@ -47,6 +47,8 @@ interface QABotConfig {
   apiKey: string;
   qaEndpoint: string;
   ratingEndpoint?: string;
+  capabilitiesEndpoint?: string;
+  agentRatingEndpoint?: string;
   defaultOpen?: boolean;
   embedded?: boolean;
   isLoggedIn: boolean;
@@ -78,6 +80,8 @@ interface ProgrammaticQABotProps {
   apiKey: string;
   qaEndpoint: string;
   ratingEndpoint?: string;
+  capabilitiesEndpoint?: string;
+  agentRatingEndpoint?: string;
   defaultOpen?: boolean;
   embedded?: boolean;
   isLoggedIn: boolean;

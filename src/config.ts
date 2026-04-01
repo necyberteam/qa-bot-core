@@ -76,6 +76,22 @@ export interface QABotProps {
   qaEndpoint: string;
   welcomeMessage: string;
   ratingEndpoint?: string;
+
+  /**
+   * Endpoint for the capabilities API (e.g., /api/v1/capabilities).
+   * The wrapper can use this to fetch dynamic capability buttons on load.
+   * Core does not fetch from this — it's a passthrough for wrappers.
+   */
+  capabilitiesEndpoint?: string;
+
+  /**
+   * Rating endpoint for agent-handled responses (non-RAG).
+   * When the response metadata includes `rating_target: "agent"`,
+   * ratings are POSTed here instead of `ratingEndpoint`.
+   * Payload: { query_id, rating: "helpful"|"not_helpful", feedback? }
+   */
+  agentRatingEndpoint?: string;
+
   primaryColor?: string;
   secondaryColor?: string;
   botName?: string;
