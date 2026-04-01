@@ -340,9 +340,11 @@ export const createQAFlow = ({
               responseLength: text.length,
             });
 
-            setTimeout(async () => {
-              await chatState.injectMessage("Feel free to ask another question.");
-            }, 100);
+            if (lastIsFinalResponse) {
+              setTimeout(async () => {
+                await chatState.injectMessage("Feel free to ask another question.");
+              }, 100);
+            }
 
             return null;
           } catch (error) {
@@ -457,10 +459,12 @@ export const createQAFlow = ({
             hasMetadata: !!metadataText
           });
 
-          // Add guidance message after a short delay
-          setTimeout(async () => {
-            await chatState.injectMessage("Feel free to ask another question.");
-          }, 100);
+          // Add guidance message only after final responses (not clarifying questions)
+          if (lastIsFinalResponse) {
+            setTimeout(async () => {
+              await chatState.injectMessage("Feel free to ask another question.");
+            }, 100);
+          }
 
           return null;
         } catch (error) {
