@@ -3,7 +3,8 @@ import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { getProcessedText } from '../getProcessedText';
 import LoginButton from '../../components/LoginButton';
-import { logger } from '../logger';
+import TurnstileWidget from '../../components/TurnstileWidget';
+import { logger, isDebugEnabled } from '../logger';
 import type { AnalyticsEventInput } from '../../contexts/AnalyticsContext';
 
 /**
@@ -12,8 +13,10 @@ import type { AnalyticsEventInput } from '../../contexts/AnalyticsContext';
 export interface CreateQAFlowParams {
   /** Q&A API endpoint (required) */
   endpoint: string;
-  /** Rating API endpoint (optional) */
+  /** Rating API endpoint for RAG responses (optional) */
   ratingEndpoint?: string;
+  /** Rating API endpoint for agent responses (optional) */
+  agentRatingEndpoint?: string;
   /** API key for authentication (optional) */
   apiKey?: string;
   /** Function that returns current session ID */
@@ -34,6 +37,13 @@ export interface CreateQAFlowParams {
   actingUser?: string;
   /** Enriched analytics tracker (adds common fields automatically) */
   trackEvent?: (event: AnalyticsEventInput) => void;
+  /**
+   * Returns the current silent Turnstile token (from useTurnstile hook).
+   * When available, attached to every request so the backend can verify
+   * without prompting.  When null, the backend's free-query allowance
+   * applies, and the visible challenge is the fallback.
+   */
+  getTurnstileToken?: () => string | null;
 }
 
 /**
@@ -71,12 +81,89 @@ function buildMetadataText(body: {
 }
 
 /**
+ * Wrapper that reads the Turnstile site key from mutable state at render time.
+ * The flow's component JSX is captured once at definition, but the site key
+ * isn't known until the API returns requires_turnstile. This wrapper bridges
+ * that gap by accepting a getter function.
+ */
+interface TurnstileState {
+  siteKey: string | null;
+  token: string | null;
+  pendingQuery: any;
+  needsChallenge: boolean;
+}
+
+interface TurnstileWidgetWrapperProps {
+  getState: () => TurnstileState;
+  onResubmit: (token: string) => Promise<void>;
+  trackEvent?: (event: AnalyticsEventInput) => void;
+  loginUrl: string;
+}
+
+function TurnstileWidgetWrapper({ getState, onResubmit, trackEvent, loginUrl }: TurnstileWidgetWrapperProps) {
+  const [failed, setFailed] = React.useState(false);
+  const state = getState();
+
+  // If the invisible widget hasn't produced a token within 5s, give up and show guidance
+  React.useEffect(() => {
+    if (!state.siteKey) return;
+    setFailed(false);
+    const timer = setTimeout(() => {
+      if (!state.token) {
+        setFailed(true);
+        trackEvent?.({ type: 'chatbot_turnstile_error' });
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [state.siteKey]);
+
+  if (!state.siteKey) return null;
+
+  if (failed) {
+    return (
+      <div style={{ padding: '8px 16px', fontSize: '14px', lineHeight: '1.5' }}>
+        <p style={{ margin: 0 }}>
+          I'm having trouble verifying your session. Please try{' '}
+          <a href="" onClick={(e) => { e.preventDefault(); window.location.reload(); }}
+            style={{ color: 'var(--primaryColor, #107180)' }}>
+            refreshing the page
+          </a>
+          , or{' '}
+          <a href={loginUrl} target="_blank" rel="noopener noreferrer"
+            style={{ color: 'var(--primaryColor, #107180)', fontWeight: 'bold' }}>
+            log in
+          </a>{' '}
+          to continue.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <TurnstileWidget
+      siteKey={state.siteKey}
+      onVerify={(token) => {
+        state.token = token;
+        trackEvent?.({ type: 'chatbot_turnstile_completed' });
+        onResubmit(token);
+      }}
+      onError={() => {
+        // Don't immediately show permanent error — Cloudflare may auto-refresh
+        // the widget. Only surface the error via the 5s timeout above.
+        logger.warn('Turnstile widget error (may auto-recover)');
+      }}
+    />
+  );
+}
+
+/**
  * Creates the basic Q&A conversation flow
  * Handles questions, responses, and optional ratings
  */
 export const createQAFlow = ({
   endpoint,
   ratingEndpoint,
+  agentRatingEndpoint,
   apiKey,
   sessionId: getSessionId,
   isResetting = () => false,
@@ -84,7 +171,8 @@ export const createQAFlow = ({
   allowAnonAccess = false,
   loginUrl = '/login',
   actingUser,
-  trackEvent
+  trackEvent,
+  getTurnstileToken,
 }: CreateQAFlowParams) => {
   // Gate Q&A when user is logged out (unless allowAnonAccess is true)
   if (isLoggedIn === false && !allowAnonAccess) {
@@ -102,9 +190,98 @@ export const createQAFlow = ({
   }
 
   // Track query ID for feedback
-  let feedbackQueryId = null;
-  // Track if we've shown a response to the user
-  let hasShownResponse = false;
+  let feedbackQueryId: string | null = null;
+  // Track response metadata for rating routing
+  let lastRatingTarget: string | null = null;
+  let lastIsFinalResponse = false;
+
+  // Turnstile state — shared between qa_loop and turnstile_challenge steps.
+  // Uses a mutable object so the TurnstileWidget component can read the
+  // current siteKey at render time (not the value captured at flow creation).
+  const turnstileState = {
+    siteKey: null as string | null,
+    token: null as string | null,
+    pendingQuery: null as { query: string; sessionId: string; queryId: string } | null,
+    needsChallenge: false,
+  };
+
+  // Mutable ref to injectMessage — captured from chatState on each message call
+  // so the Turnstile onVerify callback can inject responses into the chat.
+  let injectMessage: ((msg: string) => Promise<void>) | null = null;
+
+  // Auto-resubmit after visible Turnstile challenge completes.
+  // Called from TurnstileWidgetWrapper's onVerify — fetches the pending query
+  // with the new token and injects the response directly into the chat.
+  const handleTurnstileResubmit = async (token: string) => {
+    if (!turnstileState.pendingQuery || !injectMessage) return;
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (apiKey) headers['X-API-KEY'] = apiKey;
+
+      const retryResponse = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({
+          query: turnstileState.pendingQuery.query,
+          session_id: turnstileState.pendingQuery.sessionId,
+          question_id: turnstileState.pendingQuery.queryId,
+          turnstile_token: token,
+        }),
+      });
+
+      const savedQueryId = turnstileState.pendingQuery.queryId;
+
+      if (!retryResponse.ok) {
+        throw new Error(`API returned ${retryResponse.status} after Turnstile`);
+      }
+
+      const body = await retryResponse.json();
+
+      // If challenged again, keep pendingQuery intact so the user can re-solve
+      if (body.requires_turnstile) {
+        turnstileState.siteKey = body.site_key;
+        turnstileState.token = null;
+        await injectMessage("Still verifying — please complete the challenge again.");
+        return;
+      }
+
+      // Clear Turnstile state — challenge is resolved
+      turnstileState.token = null;
+      turnstileState.pendingQuery = null;
+      turnstileState.needsChallenge = false;
+      turnstileState.siteKey = null;
+
+      const text = body.response || body.answer || body.text || body.message;
+      if (!text) throw new Error('Invalid response format from API');
+
+      const retryMetadata = body.metadata || {};
+      lastRatingTarget = retryMetadata.rating_target || null;
+      lastIsFinalResponse = retryMetadata.is_final_response === true;
+      feedbackQueryId = savedQueryId;
+
+      const processedText = getProcessedText(text);
+      const metadataText = isDebugEnabled() ? buildMetadataText(body) : '';
+      const fullContent = metadataText ? `${processedText}\n\n${metadataText}` : processedText;
+
+      await injectMessage(fullContent);
+
+      trackEvent?.({
+        type: 'chatbot_answer_received',
+        queryId: savedQueryId,
+        success: true,
+        responseLength: text.length,
+      });
+    } catch (error) {
+      logger.error('Error resubmitting after Turnstile:', error);
+      turnstileState.token = null;
+      turnstileState.pendingQuery = null;
+      turnstileState.needsChallenge = false;
+      turnstileState.siteKey = null;
+      await injectMessage?.("I had trouble processing your question after verification. Please try again.");
+    }
+  };
 
   // Require endpoint to be configured
   if (!endpoint) {
@@ -114,9 +291,10 @@ export const createQAFlow = ({
   return {
     qa_loop: {
       message: async (chatState) => {
-        const { userInput } = chatState;
+        // Capture injectMessage so the Turnstile auto-resubmit callback can use it
+        injectMessage = chatState.injectMessage.bind(chatState);
 
-        // Skip processing if we're in reset mode
+        const { userInput } = chatState;
         if (isResetting && isResetting()) {
           return null;
         }
@@ -126,50 +304,60 @@ export const createQAFlow = ({
           return null;
         }
 
-        // Handle feedback if rating endpoint is configured
+        // Handle feedback — route to correct endpoint based on rating_target
         if (userInput === "👍 Helpful" || userInput === "👎 Not helpful") {
-          if (ratingEndpoint && feedbackQueryId) {
-            try {
-              const isPositive = userInput === "👍 Helpful";
-              const headers = {
-                'Content-Type': 'application/json'
-              };
+          if (feedbackQueryId) {
+            const isPositive = userInput === "👍 Helpful";
+            const targetEndpoint = lastRatingTarget === 'agent' ? agentRatingEndpoint : ratingEndpoint;
 
-              // Add API key if provided
-              if (apiKey) {
-                headers['X-API-KEY'] = apiKey;
-              }
+            if (targetEndpoint) {
+              try {
+                const headers: Record<string, string> = {
+                  'Content-Type': 'application/json'
+                };
 
-              // Add session tracking if available
-              const currentSessionId = getSessionId();
-              if (currentSessionId) {
-                headers['X-Session-ID'] = currentSessionId;
-                headers['X-Query-ID'] = feedbackQueryId;
-              }
+                if (apiKey) {
+                  headers['X-API-KEY'] = apiKey;
+                }
 
-              await fetch(ratingEndpoint, {
-                method: 'POST',
-                headers,
-                credentials: 'include',
-                body: JSON.stringify({
-                  sessionId: currentSessionId,
+                const currentSessionId = getSessionId();
+                if (currentSessionId) {
+                  headers['X-Session-ID'] = currentSessionId;
+                  headers['X-Query-ID'] = feedbackQueryId;
+                }
+
+                // Agent endpoint uses different payload shape
+                const body = lastRatingTarget === 'agent'
+                  ? {
+                      query_id: feedbackQueryId,
+                      rating: isPositive ? 'helpful' : 'not_helpful',
+                      session_id: currentSessionId,
+                    }
+                  : {
+                      sessionId: currentSessionId,
+                      queryId: feedbackQueryId,
+                      rating: isPositive ? 1 : 0,
+                    };
+
+                await fetch(targetEndpoint, {
+                  method: 'POST',
+                  headers,
+                  credentials: 'include',
+                  body: JSON.stringify(body)
+                });
+
+                trackEvent?.({
+                  type: 'chatbot_rating_sent',
                   queryId: feedbackQueryId,
-                  rating: isPositive ? 1 : 0
-                })
-              });
-
-              // Track rating event
-              trackEvent?.({
-                type: 'chatbot_rating_sent',
-                queryId: feedbackQueryId,
-                rating: isPositive ? 'helpful' : 'not_helpful'
-              });
-            } catch (error) {
-              logger.error('Error sending feedback:', error);
+                  rating: isPositive ? 'helpful' : 'not_helpful'
+                });
+              } catch (error) {
+                logger.error('Error sending feedback:', error);
+              }
             }
           }
 
-          return "Thanks for the feedback! Feel free to ask another question.";
+          return "Thanks for the feedback!";
         }
 
         // Process as a question
@@ -197,12 +385,16 @@ export const createQAFlow = ({
             headers['X-Session-ID'] = currentSessionId;
             headers['X-Query-ID'] = queryId;
           }
-          // Build request body
+          // Build request body — include silent Turnstile token when available
           const requestBody: Record<string, string> = {
             query: userInput,
             session_id: currentSessionId,
             question_id: queryId
           };
+          const silentToken = getTurnstileToken?.();
+          if (silentToken) {
+            requestBody.turnstile_token = silentToken;
+          }
 
           // Log the session ID being sent
           logger.session('SENT to API', {
@@ -229,6 +421,15 @@ export const createQAFlow = ({
 
           const body = await response.json();
 
+          // Turnstile challenge — store state and let path redirect to the challenge step
+          if (body.requires_turnstile) {
+            trackEvent?.({ type: 'chatbot_turnstile_shown', queryId });
+            turnstileState.siteKey = body.site_key;
+            turnstileState.pendingQuery = { query: userInput, sessionId: currentSessionId, queryId };
+            turnstileState.needsChallenge = true;
+            return "One moment — verifying your session…";
+          }
+
           // Support different response formats
           const text = body.response || body.answer || body.text || body.message;
 
@@ -236,11 +437,16 @@ export const createQAFlow = ({
             throw new Error('Invalid response format from API');
           }
 
+          // Capture response metadata for rating routing
+          const metadata = body.metadata || {};
+          lastRatingTarget = metadata.rating_target || null;
+          lastIsFinalResponse = metadata.is_final_response === true;
+
           // Process text (handles markdown, links, etc.)
           const processedText = getProcessedText(text);
 
-          // Build metadata text (empty string if no metadata present)
-          const metadataText = buildMetadataText(body);
+          // Build metadata text (only shown when QA_BOT_DEBUG is enabled)
+          const metadataText = isDebugEnabled() ? buildMetadataText(body) : '';
           const fullContent = metadataText ? `${processedText}\n\n${metadataText}` : processedText;
 
           // Inject the response
@@ -255,14 +461,6 @@ export const createQAFlow = ({
             responseLength: text.length,
             hasMetadata: !!metadataText
           });
-
-          // Mark that we've shown a response
-          hasShownResponse = true;
-
-          // Add guidance message after a short delay
-          setTimeout(async () => {
-            await chatState.injectMessage("Feel free to ask another question.");
-          }, 100);
 
           return null;
         } catch (error) {
@@ -279,7 +477,7 @@ export const createQAFlow = ({
         }
       },
 
-      // Show rating options only if rating endpoint is configured and we've shown a response
+      // Show rating options only after final responses that have a valid rating target
       options: (chatState) => {
         // Don't show options if we're resetting
         if (isResetting && isResetting()) {
@@ -291,12 +489,36 @@ export const createQAFlow = ({
           return [];
         }
 
-        // Only show rating options if endpoint is configured AND we've shown a response
-        return (ratingEndpoint && hasShownResponse) ? ["👍 Helpful", "👎 Not helpful"] : [];
+        // Don't show options during Turnstile challenge
+        if (turnstileState.needsChallenge) {
+          return [];
+        }
+
+        // Only show rating buttons when:
+        // 1. The response was marked as final (is_final_response: true)
+        // 2. rating_target is set (not null)
+        // 3. A rating endpoint exists for the response's rating_target
+        if (!lastIsFinalResponse || !lastRatingTarget) {
+          return [];
+        }
+
+        const hasEndpoint = lastRatingTarget === 'agent'
+          ? !!agentRatingEndpoint
+          : !!ratingEndpoint;
+
+        return hasEndpoint ? ["👍 Helpful", "👎 Not helpful"] : [];
       },
 
       renderMarkdown: ["BOT"],
       chatDisabled: false,
+      component: (
+        <TurnstileWidgetWrapper
+          getState={() => turnstileState}
+          onResubmit={handleTurnstileResubmit}
+          trackEvent={trackEvent}
+          loginUrl={loginUrl}
+        />
+      ),
       path: "qa_loop"
     }
   };

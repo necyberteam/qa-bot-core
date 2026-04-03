@@ -13,7 +13,10 @@ export type QABotAnalyticsEventType =
   | 'chatbot_rating_sent'
   | 'chatbot_login_prompt_shown'
   | 'chatbot_login_clicked'
-  | 'chatbot_link_clicked';
+  | 'chatbot_link_clicked'
+  | 'chatbot_turnstile_shown'
+  | 'chatbot_turnstile_completed'
+  | 'chatbot_turnstile_error';
 
 /**
  * Analytics event payload
@@ -73,6 +76,22 @@ export interface QABotProps {
   qaEndpoint: string;
   welcomeMessage: string;
   ratingEndpoint?: string;
+
+  /**
+   * Endpoint for the capabilities API (e.g., /api/v1/capabilities).
+   * The wrapper can use this to fetch dynamic capability buttons on load.
+   * Core does not fetch from this — it's a passthrough for wrappers.
+   */
+  capabilitiesEndpoint?: string;
+
+  /**
+   * Rating endpoint for agent-handled responses (non-RAG).
+   * When the response metadata includes `rating_target: "agent"`,
+   * ratings are POSTed here instead of `ratingEndpoint`.
+   * Payload: { query_id, rating: "helpful"|"not_helpful", feedback? }
+   */
+  agentRatingEndpoint?: string;
+
   primaryColor?: string;
   secondaryColor?: string;
   botName?: string;
@@ -109,6 +128,17 @@ export interface QABotProps {
    * - Optional: if not provided, requests will be anonymous
    */
   actingUser?: string;
+
+  /**
+   * Cloudflare Turnstile site key for bot protection.
+   * When provided, an invisible Turnstile widget is rendered on mount
+   * to silently verify the user.  The token is attached to every query
+   * automatically.  If silent verification fails, the backend's
+   * visible-challenge flow kicks in as a fallback.
+   *
+   * Omit or pass empty string to disable Turnstile entirely on the frontend.
+   */
+  turnstileSiteKey?: string;
 
   /**
    * Custom flow steps to merge with the built-in Q&A flow.

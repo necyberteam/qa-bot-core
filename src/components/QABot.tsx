@@ -15,6 +15,7 @@ import useChatBotSettings from '../hooks/useChatBotSettings';
 import useFocusableSendButton from '../hooks/useFocusableSendButton';
 import useKeyboardNavigation from '../hooks/useKeyboardNavigation';
 import useUpdateHeader from '../hooks/useUpdateHeader';
+import { useTurnstile } from '../hooks/useTurnstile';
 import { createQAFlow } from '../utils/flows/qa-flow';
 import {
   generateSessionId,
@@ -44,6 +45,8 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
 
     // Optional functionality
     ratingEndpoint,
+    capabilitiesEndpoint,
+    agentRatingEndpoint,
     welcomeMessage,
     open,
     onOpenChange,
@@ -71,6 +74,9 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
 
     // Login props
     loginUrl,
+
+    // Turnstile bot protection
+    turnstileSiteKey,
 
     // Custom flow extension
     customFlow,
@@ -123,6 +129,12 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
   const clearResettingFlag = () => {
     isResettingRef.current = false;
   };
+
+  // Silent Turnstile verification — renders an invisible widget on mount.
+  // Token is stored in a ref so the flow can read it without recreating.
+  const turnstile = useTurnstile(turnstileSiteKey);
+  const turnstileTokenRef = useRef<string | null>(null);
+  turnstileTokenRef.current = turnstile.token;
 
   // Track if user is logged in (for internal reactivity)
   // Note: undefined is treated as "logged in" (open access mode)
@@ -246,6 +258,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     const qaFlow = createQAFlow({
       endpoint: qaEndpoint,
       ratingEndpoint: ratingEndpoint,
+      agentRatingEndpoint: agentRatingEndpoint,
       apiKey: apiKey,
       sessionId: sessionGetter.current.getSessionId,
       isResetting: sessionGetter.current.isResetting,
@@ -253,7 +266,8 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       allowAnonAccess: allowAnonAccess,
       loginUrl: loginUrl || defaultValues.loginUrl,
       actingUser: actingUser,
-      trackEvent: trackEvent
+      trackEvent: trackEvent,
+      getTurnstileToken: () => turnstileTokenRef.current,
     });
 
     // Configure start step
@@ -270,7 +284,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       ...qaFlow,
       ...(customFlow || {})
     };
-  }, [apiKey, qaEndpoint, ratingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, trackEvent]);
+  }, [apiKey, qaEndpoint, ratingEndpoint, agentRatingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, trackEvent]);
 
   // default react-chatbotify plugins
   const plugins = useMemo(() => {
