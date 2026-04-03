@@ -533,42 +533,43 @@ export const createQAFlow = ({
                   if (eventType === 'status') {
                     // Status updates replace each other in the stream bubble
                     const statusMsg = (parsed.message as string) || 'Processing...';
-                    await chatState.streamMessage(`_${statusMsg}_`);
+                    await chatState.streamMessage(`_${statusMsg}_`, 'BOT');
                     streamStarted = true;
                   } else if (eventType === 'token') {
                     // LLM tokens — accumulate and replace stream content
                     const chunk = (parsed.content as string) || '';
                     tokenContent += chunk;
                     const processedSoFar = getProcessedText(tokenContent);
-                    await chatState.streamMessage(processedSoFar);
+                    await chatState.streamMessage(processedSoFar, 'BOT');
                   } else if (eventType === 'done') {
                     // Stream complete — finalize with metadata
                     const doneMetadata = (parsed.metadata as Record<string, unknown>) || {};
                     lastRatingTarget = (doneMetadata.rating_target as string) || null;
                     lastIsFinalResponse = doneMetadata.is_final_response === true;
 
-                    // Finalize: use streamed tokens, or fall back to full response
-                    // from done event (for paths that don't go through synthesize,
-                    // e.g. domain agent, RAG-direct).
-                    const finalText = tokenContent || (parsed.response as string) || '';
-                    if (finalText) {
-                      const processedText = getProcessedText(finalText);
-                      const metadataText = isDebugEnabled()
-                        ? buildMetadataText({ tools_used: doneMetadata.tools_used as string[], metadata: doneMetadata })
-                        : '';
-                      const fullContent = metadataText ? `${processedText}\n\n${metadataText}` : processedText;
-                      await chatState.streamMessage(fullContent);
-                      streamStarted = true;
-                    }
-
-                    if (streamStarted) {
+                    if (tokenContent) {
+                      // Tokens were streamed — content is already displayed.
+                      // Just finalize the stream.
+                      console.log('[SSE DEBUG] done: tokenContent exists, skipping streamMessage, calling endStreamMessage');
                       await chatState.endStreamMessage('BOT');
+                    } else {
+                      // No tokens (RAG-direct, domain agent) — display the
+                      // full response from the done event.
+                      const finalText = (parsed.response as string) || '';
+                      if (finalText) {
+                        const processedText = getProcessedText(finalText);
+                        await chatState.streamMessage(processedText, 'BOT');
+                        streamStarted = true;
+                      }
+                      if (streamStarted) {
+                        await chatState.endStreamMessage('BOT');
+                      }
                     }
                   } else if (eventType === 'error') {
                     const errorMsg = (parsed.message as string) || 'An error occurred';
                     logger.error('SSE error event:', errorMsg);
                     if (streamStarted) {
-                      await chatState.streamMessage(errorMsg);
+                      await chatState.streamMessage(errorMsg, 'BOT');
                       await chatState.endStreamMessage('BOT');
                     } else {
                       await chatState.injectMessage(errorMsg);
@@ -587,7 +588,7 @@ export const createQAFlow = ({
             } catch (streamError) {
               logger.error('Error reading SSE stream:', streamError);
               if (streamStarted) {
-                await chatState.streamMessage("I had trouble completing the response. Please try again.");
+                await chatState.streamMessage("I had trouble completing the response. Please try again.", 'BOT');
                 await chatState.endStreamMessage('BOT');
               } else {
                 throw streamError;
