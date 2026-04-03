@@ -533,12 +533,8 @@ export const createQAFlow = ({
                   if (eventType === 'status') {
                     // Status updates replace each other in the stream bubble
                     const statusMsg = (parsed.message as string) || 'Processing...';
-                    if (!streamStarted) {
-                      await chatState.streamMessage(`_${statusMsg}_`);
-                      streamStarted = true;
-                    } else {
-                      await chatState.streamMessage(`_${statusMsg}_`);
-                    }
+                    await chatState.streamMessage(`_${statusMsg}_`);
+                    streamStarted = true;
                   } else if (eventType === 'token') {
                     // LLM tokens — accumulate and replace stream content
                     const chunk = (parsed.content as string) || '';
@@ -551,14 +547,18 @@ export const createQAFlow = ({
                     lastRatingTarget = (doneMetadata.rating_target as string) || null;
                     lastIsFinalResponse = doneMetadata.is_final_response === true;
 
-                    // If we got tokens, finalize the streamed content
-                    if (tokenContent) {
-                      const processedText = getProcessedText(tokenContent);
+                    // Finalize: use streamed tokens, or fall back to full response
+                    // from done event (for paths that don't go through synthesize,
+                    // e.g. domain agent, RAG-direct).
+                    const finalText = tokenContent || (parsed.response as string) || '';
+                    if (finalText) {
+                      const processedText = getProcessedText(finalText);
                       const metadataText = isDebugEnabled()
                         ? buildMetadataText({ tools_used: doneMetadata.tools_used as string[], metadata: doneMetadata })
                         : '';
                       const fullContent = metadataText ? `${processedText}\n\n${metadataText}` : processedText;
                       await chatState.streamMessage(fullContent);
+                      streamStarted = true;
                     }
 
                     if (streamStarted) {
