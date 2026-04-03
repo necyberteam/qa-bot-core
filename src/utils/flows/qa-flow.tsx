@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getProcessedText } from '../getProcessedText';
 import LoginButton from '../../components/LoginButton';
 import TurnstileWidget from '../../components/TurnstileWidget';
-import { logger } from '../logger';
+import { logger, isDebugEnabled } from '../logger';
 import type { AnalyticsEventInput } from '../../contexts/AnalyticsContext';
 
 /**
@@ -95,11 +95,12 @@ interface TurnstileState {
 
 interface TurnstileWidgetWrapperProps {
   getState: () => TurnstileState;
+  onResubmit: (token: string) => Promise<void>;
   trackEvent?: (event: AnalyticsEventInput) => void;
   loginUrl: string;
 }
 
-function TurnstileWidgetWrapper({ getState, trackEvent, loginUrl }: TurnstileWidgetWrapperProps) {
+function TurnstileWidgetWrapper({ getState, onResubmit, trackEvent, loginUrl }: TurnstileWidgetWrapperProps) {
   const [failed, setFailed] = React.useState(false);
   const state = getState();
 
@@ -144,10 +145,12 @@ function TurnstileWidgetWrapper({ getState, trackEvent, loginUrl }: TurnstileWid
       onVerify={(token) => {
         state.token = token;
         trackEvent?.({ type: 'chatbot_turnstile_completed' });
+        onResubmit(token);
       }}
       onError={() => {
-        setFailed(true);
-        trackEvent?.({ type: 'chatbot_turnstile_error' });
+        // Don't immediately show permanent error — Cloudflare may auto-refresh
+        // the widget. Only surface the error via the 5s timeout above.
+        logger.warn('Turnstile widget error (may auto-recover)');
       }}
     />
   );
@@ -202,6 +205,84 @@ export const createQAFlow = ({
     needsChallenge: false,
   };
 
+  // Mutable ref to injectMessage — captured from chatState on each message call
+  // so the Turnstile onVerify callback can inject responses into the chat.
+  let injectMessage: ((msg: string) => Promise<void>) | null = null;
+
+  // Auto-resubmit after visible Turnstile challenge completes.
+  // Called from TurnstileWidgetWrapper's onVerify — fetches the pending query
+  // with the new token and injects the response directly into the chat.
+  const handleTurnstileResubmit = async (token: string) => {
+    if (!turnstileState.pendingQuery || !injectMessage) return;
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (apiKey) headers['X-API-KEY'] = apiKey;
+
+      const retryResponse = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({
+          query: turnstileState.pendingQuery.query,
+          session_id: turnstileState.pendingQuery.sessionId,
+          question_id: turnstileState.pendingQuery.queryId,
+          turnstile_token: token,
+        }),
+      });
+
+      const savedQueryId = turnstileState.pendingQuery.queryId;
+
+      if (!retryResponse.ok) {
+        throw new Error(`API returned ${retryResponse.status} after Turnstile`);
+      }
+
+      const body = await retryResponse.json();
+
+      // If challenged again, keep pendingQuery intact so the user can re-solve
+      if (body.requires_turnstile) {
+        turnstileState.siteKey = body.site_key;
+        turnstileState.token = null;
+        await injectMessage("Still verifying — please complete the challenge again.");
+        return;
+      }
+
+      // Clear Turnstile state — challenge is resolved
+      turnstileState.token = null;
+      turnstileState.pendingQuery = null;
+      turnstileState.needsChallenge = false;
+      turnstileState.siteKey = null;
+
+      const text = body.response || body.answer || body.text || body.message;
+      if (!text) throw new Error('Invalid response format from API');
+
+      const retryMetadata = body.metadata || {};
+      lastRatingTarget = retryMetadata.rating_target || null;
+      lastIsFinalResponse = retryMetadata.is_final_response === true;
+      feedbackQueryId = savedQueryId;
+
+      const processedText = getProcessedText(text);
+      const metadataText = isDebugEnabled() ? buildMetadataText(body) : '';
+      const fullContent = metadataText ? `${processedText}\n\n${metadataText}` : processedText;
+
+      await injectMessage(fullContent);
+
+      trackEvent?.({
+        type: 'chatbot_answer_received',
+        queryId: savedQueryId,
+        success: true,
+        responseLength: text.length,
+      });
+    } catch (error) {
+      logger.error('Error resubmitting after Turnstile:', error);
+      turnstileState.token = null;
+      turnstileState.pendingQuery = null;
+      turnstileState.needsChallenge = false;
+      turnstileState.siteKey = null;
+      await injectMessage?.("I had trouble processing your question after verification. Please try again.");
+    }
+  };
+
   // Require endpoint to be configured
   if (!endpoint) {
     throw new Error('Q&A endpoint is required');
@@ -210,9 +291,10 @@ export const createQAFlow = ({
   return {
     qa_loop: {
       message: async (chatState) => {
-        const { userInput } = chatState;
+        // Capture injectMessage so the Turnstile auto-resubmit callback can use it
+        injectMessage = chatState.injectMessage.bind(chatState);
 
-        // Skip processing if we're in reset mode
+        const { userInput } = chatState;
         if (isResetting && isResetting()) {
           return null;
         }
@@ -275,86 +357,7 @@ export const createQAFlow = ({
             }
           }
 
-          return "Thanks for the feedback! Feel free to ask another question.";
-        }
-
-        // If returning from Turnstile with a token, resend the pending query
-        if (turnstileState.token && turnstileState.pendingQuery) {
-          try {
-            const headers = {
-              'Content-Type': 'application/json'
-            };
-            if (apiKey) {
-              headers['X-API-KEY'] = apiKey;
-            }
-
-            const retryResponse = await fetch(endpoint, {
-              method: 'POST',
-              headers,
-              credentials: 'include',
-              body: JSON.stringify({
-                query: turnstileState.pendingQuery.query,
-                session_id: turnstileState.pendingQuery.sessionId,
-                question_id: turnstileState.pendingQuery.queryId,
-                turnstile_token: turnstileState.token
-              })
-            });
-
-            // Clear Turnstile state so the widget doesn't re-render
-            const savedQueryId = turnstileState.pendingQuery.queryId;
-            turnstileState.token = null;
-            turnstileState.pendingQuery = null;
-            turnstileState.needsChallenge = false;
-            turnstileState.siteKey = null;
-
-            if (!retryResponse.ok) {
-              throw new Error(`API returned ${retryResponse.status} after Turnstile`);
-            }
-
-            const body = await retryResponse.json();
-
-            if (body.requires_turnstile) {
-              return "Verification failed. Please try your question again.";
-            }
-
-            const text = body.response || body.answer || body.text || body.message;
-            if (!text) {
-              throw new Error('Invalid response format from API');
-            }
-
-            // Capture response metadata for rating routing
-            const retryMetadata = body.metadata || {};
-            lastRatingTarget = retryMetadata.rating_target || null;
-            lastIsFinalResponse = retryMetadata.is_final_response === true;
-
-            const processedText = getProcessedText(text);
-            const metadataText = buildMetadataText(body);
-            const fullContent = metadataText ? `${processedText}\n\n${metadataText}` : processedText;
-
-            await chatState.injectMessage(fullContent);
-
-            trackEvent?.({
-              type: 'chatbot_answer_received',
-              queryId: savedQueryId,
-              success: true,
-              responseLength: text.length,
-            });
-
-            if (lastIsFinalResponse) {
-              setTimeout(async () => {
-                await chatState.injectMessage("Feel free to ask another question.");
-              }, 100);
-            }
-
-            return null;
-          } catch (error) {
-            logger.error('Error resending after Turnstile:', error);
-            turnstileState.token = null;
-            turnstileState.pendingQuery = null;
-            turnstileState.needsChallenge = false;
-            turnstileState.siteKey = null;
-            return "I had trouble processing your question after verification. Please try again.";
-          }
+          return "Thanks for the feedback!";
         }
 
         // Process as a question
@@ -442,8 +445,8 @@ export const createQAFlow = ({
           // Process text (handles markdown, links, etc.)
           const processedText = getProcessedText(text);
 
-          // Build metadata text (empty string if no metadata present)
-          const metadataText = buildMetadataText(body);
+          // Build metadata text (only shown when QA_BOT_DEBUG is enabled)
+          const metadataText = isDebugEnabled() ? buildMetadataText(body) : '';
           const fullContent = metadataText ? `${processedText}\n\n${metadataText}` : processedText;
 
           // Inject the response
@@ -458,13 +461,6 @@ export const createQAFlow = ({
             responseLength: text.length,
             hasMetadata: !!metadataText
           });
-
-          // Add guidance message only after final responses (not clarifying questions)
-          if (lastIsFinalResponse) {
-            setTimeout(async () => {
-              await chatState.injectMessage("Feel free to ask another question.");
-            }, 100);
-          }
 
           return null;
         } catch (error) {
@@ -500,8 +496,9 @@ export const createQAFlow = ({
 
         // Only show rating buttons when:
         // 1. The response was marked as final (is_final_response: true)
-        // 2. A rating endpoint exists for the response's rating_target
-        if (!lastIsFinalResponse) {
+        // 2. rating_target is set (not null)
+        // 3. A rating endpoint exists for the response's rating_target
+        if (!lastIsFinalResponse || !lastRatingTarget) {
           return [];
         }
 
@@ -517,6 +514,7 @@ export const createQAFlow = ({
       component: (
         <TurnstileWidgetWrapper
           getState={() => turnstileState}
+          onResubmit={handleTurnstileResubmit}
           trackEvent={trackEvent}
           loginUrl={loginUrl}
         />
