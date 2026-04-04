@@ -237,6 +237,70 @@ export const createQAFlow = ({
         throw new Error(`API returned ${retryResponse.status} after Turnstile`);
       }
 
+      const retryContentType = retryResponse.headers.get('content-type') || '';
+
+      if (retryContentType.includes('text/event-stream')) {
+        // SSE response — consume the full stream and inject final result
+        const reader = retryResponse.body?.getReader();
+        if (!reader) throw new Error('Response body is not readable');
+
+        const decoder = new TextDecoder();
+        let sseBuffer = '';
+        let collectedTokens = '';
+        let doneMetadata: Record<string, unknown> = {};
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          sseBuffer += decoder.decode(value, { stream: true });
+
+          let boundary = sseBuffer.indexOf('\n\n');
+          while (boundary !== -1) {
+            const block = sseBuffer.slice(0, boundary);
+            sseBuffer = sseBuffer.slice(boundary + 2);
+
+            let evType = '', evData = '';
+            for (const line of block.split('\n')) {
+              if (line.startsWith('event: ')) evType = line.slice(7);
+              else if (line.startsWith('data: ')) evData = line.slice(6);
+            }
+
+            if (evType && evData) {
+              try {
+                const parsed = JSON.parse(evData);
+                if (evType === 'token') collectedTokens += (parsed.content || '');
+                else if (evType === 'done') doneMetadata = (parsed.metadata as Record<string, unknown>) || {};
+              } catch { /* skip malformed */ }
+            }
+            boundary = sseBuffer.indexOf('\n\n');
+          }
+        }
+
+        // Clear Turnstile state
+        turnstileState.token = null;
+        turnstileState.pendingQuery = null;
+        turnstileState.needsChallenge = false;
+        turnstileState.siteKey = null;
+
+        if (!collectedTokens) throw new Error('No content received from stream');
+
+        lastRatingTarget = (doneMetadata.rating_target as string) || null;
+        lastIsFinalResponse = doneMetadata.is_final_response === true;
+        feedbackQueryId = savedQueryId;
+
+        const processedText = getProcessedText(collectedTokens);
+        await injectMessage(processedText);
+
+        trackEvent?.({
+          type: 'chatbot_answer_received',
+          queryId: savedQueryId,
+          success: true,
+          responseLength: collectedTokens.length,
+        });
+        return;
+      }
+
+      // JSON response path (discovery, repeated Turnstile challenge)
       const body = await retryResponse.json();
 
       // If challenged again, keep pendingQuery intact so the user can re-solve
@@ -412,13 +476,139 @@ export const createQAFlow = ({
             body: JSON.stringify(requestBody)
           });
 
-          // Calculate response time (network + server processing)
-          const responseTimeMs = Date.now() - requestStartTime;
-
           if (!response.ok) {
             throw new Error(`API returned ${response.status}`);
           }
 
+          const contentType = response.headers.get('content-type') || '';
+
+          // ── SSE streaming path (agent queries) ──────────────────────
+          if (contentType.includes('text/event-stream')) {
+            const reader = response.body?.getReader();
+            if (!reader) throw new Error('Response body is not readable');
+
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let tokenContent = '';  // Accumulated LLM tokens
+            let streamStarted = false;
+
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+
+                // Parse SSE events from buffer (events are separated by double newlines)
+                let boundary = buffer.indexOf('\n\n');
+                while (boundary !== -1) {
+                  const eventBlock = buffer.slice(0, boundary);
+                  buffer = buffer.slice(boundary + 2);
+
+                  // Parse event type and data from the block
+                  let eventType = '';
+                  let eventData = '';
+                  for (const line of eventBlock.split('\n')) {
+                    if (line.startsWith('event: ')) {
+                      eventType = line.slice(7);
+                    } else if (line.startsWith('data: ')) {
+                      eventData = line.slice(6);
+                    }
+                  }
+
+                  if (!eventType || !eventData) {
+                    boundary = buffer.indexOf('\n\n');
+                    continue;
+                  }
+
+                  let parsed: Record<string, unknown>;
+                  try {
+                    parsed = JSON.parse(eventData);
+                  } catch {
+                    logger.warn('Failed to parse SSE data:', eventData);
+                    boundary = buffer.indexOf('\n\n');
+                    continue;
+                  }
+
+                  if (eventType === 'status') {
+                    // Status updates replace each other in the stream bubble
+                    const statusMsg = (parsed.message as string) || 'Processing...';
+                    await chatState.streamMessage(`_${statusMsg}_`, 'BOT');
+                    streamStarted = true;
+                  } else if (eventType === 'token') {
+                    // LLM tokens — accumulate and replace stream content
+                    const chunk = (parsed.content as string) || '';
+                    tokenContent += chunk;
+                    const processedSoFar = getProcessedText(tokenContent);
+                    await chatState.streamMessage(processedSoFar, 'BOT');
+                  } else if (eventType === 'done') {
+                    // Stream complete — finalize with metadata
+                    const doneMetadata = (parsed.metadata as Record<string, unknown>) || {};
+                    lastRatingTarget = (doneMetadata.rating_target as string) || null;
+                    lastIsFinalResponse = doneMetadata.is_final_response === true;
+
+                    if (tokenContent) {
+                      // Tokens were streamed — content is already displayed.
+                      // Just finalize the stream.
+                      console.log('[SSE DEBUG] done: tokenContent exists, skipping streamMessage, calling endStreamMessage');
+                      await chatState.endStreamMessage('BOT');
+                    } else {
+                      // No tokens (RAG-direct, domain agent) — display the
+                      // full response from the done event.
+                      const finalText = (parsed.response as string) || '';
+                      if (finalText) {
+                        const processedText = getProcessedText(finalText);
+                        await chatState.streamMessage(processedText, 'BOT');
+                        streamStarted = true;
+                      }
+                      if (streamStarted) {
+                        await chatState.endStreamMessage('BOT');
+                      }
+                    }
+                  } else if (eventType === 'error') {
+                    const errorMsg = (parsed.message as string) || 'An error occurred';
+                    logger.error('SSE error event:', errorMsg);
+                    if (streamStarted) {
+                      await chatState.streamMessage(errorMsg, 'BOT');
+                      await chatState.endStreamMessage('BOT');
+                    } else {
+                      await chatState.injectMessage(errorMsg);
+                    }
+                  }
+
+                  boundary = buffer.indexOf('\n\n');
+                }
+              }
+
+              // If stream ended without a done event, finalize anyway
+              if (streamStarted) {
+                // endStreamMessage is idempotent if already called
+                await chatState.endStreamMessage('BOT');
+              }
+            } catch (streamError) {
+              logger.error('Error reading SSE stream:', streamError);
+              if (streamStarted) {
+                await chatState.streamMessage("I had trouble completing the response. Please try again.", 'BOT');
+                await chatState.endStreamMessage('BOT');
+              } else {
+                throw streamError;
+              }
+            }
+
+            const responseTimeMs = Date.now() - requestStartTime;
+            trackEvent?.({
+              type: 'chatbot_answer_received',
+              queryId,
+              responseTimeMs,
+              success: true,
+              responseLength: tokenContent.length,
+            });
+
+            return null;
+          }
+
+          // ── JSON path (discovery, Turnstile, fallback) ─────────────
+          const responseTimeMs = Date.now() - requestStartTime;
           const body = await response.json();
 
           // Turnstile challenge — store state and let path redirect to the challenge step
