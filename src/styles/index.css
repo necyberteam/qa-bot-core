@@ -390,6 +390,25 @@
   outline-offset: 2px !important;
 }
 
+/* List formatting in bot messages — override @rcb-plugins/markdown-renderer
+   inline styles that set list-style-position: inside, causing markers to
+   appear on a separate line from the text when <p> tags are present */
+.rcb-bot-message ul,
+.rcb-bot-message ol {
+  list-style-position: outside !important;
+  margin: 0.5em 0 !important;
+  padding-left: 1.5em !important;
+}
+
+.rcb-bot-message li {
+  margin-bottom: 0.25em !important;
+}
+
+.rcb-bot-message li > p {
+  display: inline !important;
+  margin: 0 !important;
+}
+
 /* Fix horizontal scroll bar in user messages */
 .rcb-user-message {
   overflow: hidden !important;
