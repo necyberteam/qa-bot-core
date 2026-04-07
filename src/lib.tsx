@@ -64,6 +64,7 @@ interface QABotConfig {
   footerText?: string;
   footerLink?: string;
   tooltipText?: string;
+  resourceContext?: string;
   onAnalyticsEvent?: (event: QABotAnalyticsEvent) => void;
 }
 
@@ -97,6 +98,7 @@ interface ProgrammaticQABotProps {
   footerText?: string;
   footerLink?: string;
   tooltipText?: string;
+  resourceContext?: string;
   onAnalyticsEvent?: (event: QABotAnalyticsEvent) => void;
 }
 
@@ -156,6 +158,7 @@ const ProgrammaticQABot = React.forwardRef<BotControllerHandle, ProgrammaticQABo
         footerText={props.footerText}
         footerLink={props.footerLink}
         tooltipText={props.tooltipText}
+        resourceContext={props.resourceContext}
         onAnalyticsEvent={props.onAnalyticsEvent}
       />
     );
@@ -201,6 +204,7 @@ export function qaBot(config: QABotConfig): QABotInstance | undefined {
         footerText={config.footerText}
         footerLink={config.footerLink}
         tooltipText={config.tooltipText}
+        resourceContext={config.resourceContext}
         onAnalyticsEvent={config.onAnalyticsEvent}
       />
     </React.StrictMode>
