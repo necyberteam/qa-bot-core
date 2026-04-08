@@ -44,6 +44,8 @@ export interface CreateQAFlowParams {
    * applies, and the visible challenge is the fallback.
    */
   getTurnstileToken?: () => string | null;
+  /** RP slug for resource-scoped queries (e.g. 'delta'). */
+  resourceContext?: string;
 }
 
 /**
@@ -173,6 +175,7 @@ export const createQAFlow = ({
   actingUser,
   trackEvent,
   getTurnstileToken,
+  resourceContext,
 }: CreateQAFlowParams) => {
   // Gate Q&A when user is logged out (unless allowAnonAccess is true)
   if (isLoggedIn === false && !allowAnonAccess) {
@@ -219,16 +222,21 @@ export const createQAFlow = ({
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (apiKey) headers['X-API-KEY'] = apiKey;
 
+      const retryBody: Record<string, string> = {
+        query: turnstileState.pendingQuery.query,
+        session_id: turnstileState.pendingQuery.sessionId,
+        question_id: turnstileState.pendingQuery.queryId,
+        turnstile_token: token,
+      };
+      if (resourceContext) {
+        retryBody.resource_context = resourceContext;
+      }
+
       const retryResponse = await fetch(endpoint, {
         method: 'POST',
         headers,
         credentials: 'include',
-        body: JSON.stringify({
-          query: turnstileState.pendingQuery.query,
-          session_id: turnstileState.pendingQuery.sessionId,
-          question_id: turnstileState.pendingQuery.queryId,
-          turnstile_token: token,
-        }),
+        body: JSON.stringify(retryBody),
       });
 
       const savedQueryId = turnstileState.pendingQuery.queryId;
@@ -455,6 +463,9 @@ export const createQAFlow = ({
             session_id: currentSessionId,
             question_id: queryId
           };
+          if (resourceContext) {
+            requestBody.resource_context = resourceContext;
+          }
           const silentToken = getTurnstileToken?.();
           if (silentToken) {
             requestBody.turnstile_token = silentToken;

@@ -78,6 +78,9 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     // Turnstile bot protection
     turnstileSiteKey,
 
+    // Resource scoping
+    resourceContext,
+
     // Custom flow extension
     customFlow,
 
@@ -268,6 +271,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       actingUser: actingUser,
       trackEvent: trackEvent,
       getTurnstileToken: () => turnstileTokenRef.current,
+      resourceContext: resourceContext,
     });
 
     // Configure start step
@@ -284,7 +288,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       ...qaFlow,
       ...(customFlow || {})
     };
-  }, [apiKey, qaEndpoint, ratingEndpoint, agentRatingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, trackEvent]);
+  }, [apiKey, qaEndpoint, ratingEndpoint, agentRatingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, trackEvent, resourceContext]);
 
   // default react-chatbotify plugins
   const plugins = useMemo(() => {
