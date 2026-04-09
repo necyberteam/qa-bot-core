@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import QABot from './components/QABot';
-import type { BotControllerHandle, QABotAnalyticsEvent } from './config';
+import type { BotControllerHandle, QABotAnalyticsEvent, QABotProps } from './config';
 import { logger } from './utils/logger';
 import './styles/index.css'; // QA Bot styles
 
@@ -42,30 +42,14 @@ export type {
  * ===========================================
  */
 
-interface QABotConfig {
+/**
+ * Config for the programmatic API (window.qaBotCore / qaBot()).
+ * Extends QABotProps with a target element and defaultOpen,
+ * and omits open/onOpenChange (managed internally).
+ */
+interface QABotConfig extends Omit<QABotProps, 'open' | 'onOpenChange'> {
   target: HTMLElement;
-  apiKey: string;
-  qaEndpoint: string;
-  ratingEndpoint?: string;
-  capabilitiesEndpoint?: string;
-  agentRatingEndpoint?: string;
   defaultOpen?: boolean;
-  embedded?: boolean;
-  isLoggedIn: boolean;
-  allowAnonAccess?: boolean;
-  turnstileSiteKey?: string;
-  welcomeMessage: string;
-  primaryColor?: string;
-  secondaryColor?: string;
-  botName?: string;
-  logo?: string;
-  placeholder?: string;
-  errorMessage?: string;
-  footerText?: string;
-  footerLink?: string;
-  tooltipText?: string;
-  resourceContext?: string;
-  onAnalyticsEvent?: (event: QABotAnalyticsEvent) => void;
 }
 
 interface QABotInstance {
@@ -77,30 +61,9 @@ interface QABotInstance {
   destroy: () => void;
 }
 
-interface ProgrammaticQABotProps {
-  apiKey: string;
-  qaEndpoint: string;
-  ratingEndpoint?: string;
-  capabilitiesEndpoint?: string;
-  agentRatingEndpoint?: string;
+type ProgrammaticQABotProps = Omit<QABotProps, 'open' | 'onOpenChange'> & {
   defaultOpen?: boolean;
-  embedded?: boolean;
-  isLoggedIn: boolean;
-  allowAnonAccess?: boolean;
-  turnstileSiteKey?: string;
-  welcomeMessage: string;
-  primaryColor?: string;
-  secondaryColor?: string;
-  botName?: string;
-  logo?: string;
-  placeholder?: string;
-  errorMessage?: string;
-  footerText?: string;
-  footerLink?: string;
-  tooltipText?: string;
-  resourceContext?: string;
-  onAnalyticsEvent?: (event: QABotAnalyticsEvent) => void;
-}
+};
 
 /**
  * ===========================================
@@ -110,11 +73,10 @@ interface ProgrammaticQABotProps {
 
 // React wrapper component for programmatic API
 const ProgrammaticQABot = React.forwardRef<BotControllerHandle, ProgrammaticQABotProps>(
-  (props, ref) => {
-    const [isOpen, setIsOpen] = React.useState(props.defaultOpen || false);
+  ({ defaultOpen, ...qaProps }, ref) => {
+    const [isOpen, setIsOpen] = React.useState(defaultOpen || false);
     const qaRef = React.useRef<BotControllerHandle>(null);
 
-    // Expose controller methods via ref
     React.useImperativeHandle(ref, () => ({
       addMessage: (message: string) => {
         qaRef.current?.addMessage(message);
@@ -139,27 +101,9 @@ const ProgrammaticQABot = React.forwardRef<BotControllerHandle, ProgrammaticQABo
     return (
       <QABot
         ref={qaRef}
-        apiKey={props.apiKey}
-        qaEndpoint={props.qaEndpoint}
-        ratingEndpoint={props.ratingEndpoint}
-        welcomeMessage={props.welcomeMessage}
-        primaryColor={props.primaryColor}
-        secondaryColor={props.secondaryColor}
-        botName={props.botName}
-        logo={props.logo}
-        placeholder={props.placeholder}
-        errorMessage={props.errorMessage}
-        embedded={props.embedded}
-        isLoggedIn={props.isLoggedIn}
-        allowAnonAccess={props.allowAnonAccess}
-        turnstileSiteKey={props.turnstileSiteKey}
+        {...qaProps}
         open={isOpen}
         onOpenChange={setIsOpen}
-        footerText={props.footerText}
-        footerLink={props.footerLink}
-        tooltipText={props.tooltipText}
-        resourceContext={props.resourceContext}
-        onAnalyticsEvent={props.onAnalyticsEvent}
       />
     );
   }
@@ -179,33 +123,15 @@ export function qaBot(config: QABotConfig): QABotInstance | undefined {
     return undefined;
   }
 
-  const root = ReactDOM.createRoot(config.target);
+  const { target, ...programmaticProps } = config;
+  const root = ReactDOM.createRoot(target);
   const wrapperRef = { current: null as BotControllerHandle | null };
 
   root.render(
     <React.StrictMode>
       <ProgrammaticQABot
         ref={(ref) => { wrapperRef.current = ref; }}
-        apiKey={config.apiKey}
-        qaEndpoint={config.qaEndpoint}
-        ratingEndpoint={config.ratingEndpoint}
-        defaultOpen={config.defaultOpen}
-        embedded={config.embedded}
-        isLoggedIn={config.isLoggedIn}
-        allowAnonAccess={config.allowAnonAccess}
-        turnstileSiteKey={config.turnstileSiteKey}
-        welcomeMessage={config.welcomeMessage}
-        primaryColor={config.primaryColor}
-        secondaryColor={config.secondaryColor}
-        botName={config.botName}
-        logo={config.logo}
-        placeholder={config.placeholder}
-        errorMessage={config.errorMessage}
-        footerText={config.footerText}
-        footerLink={config.footerLink}
-        tooltipText={config.tooltipText}
-        resourceContext={config.resourceContext}
-        onAnalyticsEvent={config.onAnalyticsEvent}
+        {...programmaticProps}
       />
     </React.StrictMode>
   );

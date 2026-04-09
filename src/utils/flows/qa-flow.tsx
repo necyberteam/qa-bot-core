@@ -44,6 +44,8 @@ export interface CreateQAFlowParams {
    * applies, and the visible challenge is the fallback.
    */
   getTurnstileToken?: () => string | null;
+  /** Backend ID — included as _backend in request body for proxy routing. */
+  backendId?: string;
   /** RP slug for resource-scoped queries (e.g. 'delta'). */
   resourceContext?: string;
 }
@@ -175,6 +177,7 @@ export const createQAFlow = ({
   actingUser,
   trackEvent,
   getTurnstileToken,
+  backendId,
   resourceContext,
 }: CreateQAFlowParams) => {
   // Gate Q&A when user is logged out (unless allowAnonAccess is true)
@@ -221,6 +224,10 @@ export const createQAFlow = ({
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (apiKey) headers['X-API-KEY'] = apiKey;
+      if (turnstileState.pendingQuery.sessionId) {
+        headers['X-Session-ID'] = turnstileState.pendingQuery.sessionId;
+        headers['X-Query-ID'] = turnstileState.pendingQuery.queryId;
+      }
 
       const retryBody: Record<string, string> = {
         query: turnstileState.pendingQuery.query,
@@ -228,6 +235,9 @@ export const createQAFlow = ({
         question_id: turnstileState.pendingQuery.queryId,
         turnstile_token: token,
       };
+      if (backendId) {
+        retryBody._backend = backendId;
+      }
       if (resourceContext) {
         retryBody.resource_context = resourceContext;
       }
@@ -463,6 +473,9 @@ export const createQAFlow = ({
             session_id: currentSessionId,
             question_id: queryId
           };
+          if (backendId) {
+            requestBody._backend = backendId;
+          }
           if (resourceContext) {
             requestBody.resource_context = resourceContext;
           }

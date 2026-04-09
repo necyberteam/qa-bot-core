@@ -271,6 +271,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       actingUser: actingUser,
       trackEvent: trackEvent,
       getTurnstileToken: () => turnstileTokenRef.current,
+      backendId: props.backendId,
       resourceContext: resourceContext,
     });
 
