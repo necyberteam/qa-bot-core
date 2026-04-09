@@ -108,22 +108,10 @@ function TurnstileWidgetWrapper({ getState, onResubmit, trackEvent, loginUrl }: 
   const [failed, setFailed] = React.useState(false);
   const state = getState();
 
-  // If the invisible widget hasn't produced a token within 5s, give up and show guidance
-  React.useEffect(() => {
-    if (!state.siteKey) return;
-    setFailed(false);
-    const timer = setTimeout(() => {
-      if (!state.token) {
-        setFailed(true);
-        trackEvent?.({ type: 'chatbot_turnstile_error' });
-      }
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [state.siteKey]);
-
   if (!state.siteKey) return null;
 
   if (failed) {
+    const hasLogin = loginUrl && loginUrl !== '/login';
     return (
       <div style={{ padding: '8px 16px', fontSize: '14px', lineHeight: '1.5' }}>
         <p style={{ margin: 0 }}>
@@ -132,12 +120,16 @@ function TurnstileWidgetWrapper({ getState, onResubmit, trackEvent, loginUrl }: 
             style={{ color: 'var(--primaryColor, #107180)' }}>
             refreshing the page
           </a>
-          , or{' '}
-          <a href={loginUrl} target="_blank" rel="noopener noreferrer"
-            style={{ color: 'var(--primaryColor, #107180)', fontWeight: 'bold' }}>
-            log in
-          </a>{' '}
-          to continue.
+          {hasLogin && (
+            <>
+              , or{' '}
+              <a href={loginUrl} target="_blank" rel="noopener noreferrer"
+                style={{ color: 'var(--primaryColor, #107180)', fontWeight: 'bold' }}>
+                log in
+              </a>
+            </>
+          )}
+          .
         </p>
       </div>
     );
@@ -152,9 +144,9 @@ function TurnstileWidgetWrapper({ getState, onResubmit, trackEvent, loginUrl }: 
         onResubmit(token);
       }}
       onError={() => {
-        // Don't immediately show permanent error — Cloudflare may auto-refresh
-        // the widget. Only surface the error via the 5s timeout above.
-        logger.warn('Turnstile widget error (may auto-recover)');
+        // Cloudflare's widget has exhausted its own retries — show guidance
+        setFailed(true);
+        trackEvent?.({ type: 'chatbot_turnstile_error' });
       }}
     />
   );
