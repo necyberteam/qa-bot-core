@@ -44,6 +44,8 @@ export interface CreateQAFlowParams {
    * applies, and the visible challenge is the fallback.
    */
   getTurnstileToken?: () => string | null;
+  /** Reset the Turnstile widget to generate a fresh token after each use. */
+  resetTurnstileToken?: () => void;
   /** Backend ID — included as _backend in request body for proxy routing. */
   backendId?: string;
   /** RP slug for resource-scoped queries (e.g. 'delta'). */
@@ -169,6 +171,7 @@ export const createQAFlow = ({
   actingUser,
   trackEvent,
   getTurnstileToken,
+  resetTurnstileToken,
   backendId,
   resourceContext,
 }: CreateQAFlowParams) => {
@@ -500,6 +503,8 @@ export const createQAFlow = ({
 
           // ── SSE streaming path (agent queries) ──────────────────────
           if (contentType.includes('text/event-stream')) {
+            // Token was accepted — reset widget for a fresh token on the next request.
+            resetTurnstileToken?.();
             const reader = response.body?.getReader();
             if (!reader) throw new Error('Response body is not readable');
 
@@ -635,6 +640,9 @@ export const createQAFlow = ({
             turnstileState.needsChallenge = true;
             return "One moment — verifying your session…";
           }
+
+          // Token was accepted (not a Turnstile challenge) — reset for next request.
+          resetTurnstileToken?.();
 
           // Support different response formats
           const text = body.response || body.answer || body.text || body.message;

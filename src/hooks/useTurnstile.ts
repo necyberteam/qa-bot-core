@@ -25,6 +25,8 @@ export interface UseTurnstileResult {
   token: string | null;
   /** Lifecycle status of the silent verification. */
   status: TurnstileStatus;
+  /** Reset the widget to generate a fresh token (call after each successful use). */
+  reset: () => void;
 }
 
 /**
@@ -129,5 +131,19 @@ export function useTurnstile(siteKey: string | undefined): UseTurnstileResult {
     };
   }, [siteKey, cleanup]);
 
-  return { token, status };
+  // Reset the widget to generate a fresh token. Cloudflare Turnstile tokens
+  // are single-use — once validated server-side, they can't be reused.
+  // Call this after each successful request so the next request has a fresh token.
+  // See: https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/#reset-a-widget
+  const reset = useCallback(() => {
+    const turnstile = (window as any).turnstile;
+    if (widgetIdRef.current && turnstile?.reset) {
+      setToken(null);
+      setStatus('loading');
+      turnstile.reset(widgetIdRef.current);
+      logger.turnstile('Token consumed, resetting widget for fresh token');
+    }
+  }, []);
+
+  return { token, status, reset };
 }
