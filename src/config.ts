@@ -141,6 +141,16 @@ export interface QABotProps {
   turnstileSiteKey?: string;
 
   /**
+   * Backend identifier for proxy-based deployments.
+   * When using a Turnstile-validating proxy, set `qaEndpoint` to the proxy
+   * URL (e.g. "/api/chat") and `backendId` to the server-side backend
+   * identifier (e.g. "nairr"). The proxy resolves this ID to the actual
+   * backend URL from its ALLOWED_BACKENDS env var.
+   * When omitted, requests go directly to `qaEndpoint` (no proxy).
+   */
+  backendId?: string;
+
+  /**
    * RP slug for resource-scoped queries (e.g. 'delta').
    * When set, included as resource_context in query POST body
    * and as a query param on capabilities GET.
