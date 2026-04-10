@@ -12,10 +12,7 @@
 const DEBUG_KEY = 'QA_BOT_DEBUG';
 
 // Library version - update this when releasing (see publishing.md)
-// PROBE: temporarily set to a distinctive marker so the local-link
-// chain can be sanity-checked from the browser console. Revert to a
-// real version (e.g. '0.2.34') before publishing.
-export const LIB_VERSION = '0.2.34-local-link.1';
+export const LIB_VERSION = '0.2.35';
 
 export function isDebugEnabled(): boolean {
   return typeof localStorage !== 'undefined' && localStorage.getItem(DEBUG_KEY) === 'true';
