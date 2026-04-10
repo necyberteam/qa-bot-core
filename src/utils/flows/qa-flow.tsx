@@ -223,6 +223,7 @@ export const createQAFlow = ({
         headers['X-Session-ID'] = turnstileState.pendingQuery.sessionId;
         headers['X-Query-ID'] = turnstileState.pendingQuery.queryId;
       }
+      headers['X-Origin'] = resourceContext || 'access';
 
       const retryBody: Record<string, string> = {
         query: turnstileState.pendingQuery.query,
@@ -234,7 +235,7 @@ export const createQAFlow = ({
         retryBody._backend = backendId;
       }
       if (resourceContext) {
-        retryBody.resource_context = resourceContext;
+        retryBody.rp_name = resourceContext;
       }
 
       const retryResponse = await fetch(endpoint, {
@@ -462,6 +463,7 @@ export const createQAFlow = ({
             headers['X-Session-ID'] = currentSessionId;
             headers['X-Query-ID'] = queryId;
           }
+          headers['X-Origin'] = resourceContext || 'access';
           // Build request body — include silent Turnstile token when available
           const requestBody: Record<string, string> = {
             query: userInput,
@@ -472,7 +474,7 @@ export const createQAFlow = ({
             requestBody._backend = backendId;
           }
           if (resourceContext) {
-            requestBody.resource_context = resourceContext;
+            requestBody.rp_name = resourceContext;
           }
           const silentToken = getTurnstileToken?.();
           if (silentToken) {
