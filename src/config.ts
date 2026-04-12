@@ -152,8 +152,9 @@ export interface QABotProps {
 
   /**
    * RP slug for resource-scoped queries (e.g. 'delta').
-   * When set, included as resource_context in query POST body
-   * and as a query param on capabilities GET.
+   * When set, sent as `rp_name` in the query POST body and as
+   * `X-Origin` header (UKY RAG API contract). Also included as
+   * a query param on capabilities GET when the agent is enabled.
    */
   resourceContext?: string;
 

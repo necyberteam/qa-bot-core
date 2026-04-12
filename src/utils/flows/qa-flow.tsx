@@ -101,53 +101,42 @@ interface TurnstileState {
 
 interface TurnstileWidgetWrapperProps {
   getState: () => TurnstileState;
-  onResubmit: (token: string) => Promise<void>;
+  onResubmit: (token: string) => Promise<'success' | 'needs_another_challenge' | 'error'>;
   trackEvent?: (event: AnalyticsEventInput) => void;
   loginUrl: string;
 }
 
 function TurnstileWidgetWrapper({ getState, onResubmit, trackEvent, loginUrl }: TurnstileWidgetWrapperProps) {
-  const [failed, setFailed] = React.useState(false);
+  const [resolved, setResolved] = React.useState(false);
+  // Incremented to force re-mount of TurnstileWidget when a re-challenge is needed
+  const [challengeKey, setChallengeKey] = React.useState(0);
   const state = getState();
 
-  if (!state.siteKey) return null;
-
-  if (failed) {
-    const hasLogin = loginUrl && loginUrl !== '/login';
-    return (
-      <div style={{ padding: '8px 16px', fontSize: '14px', lineHeight: '1.5' }}>
-        <p style={{ margin: 0 }}>
-          I'm having trouble verifying your session. Please try{' '}
-          <a href="" onClick={(e) => { e.preventDefault(); window.location.reload(); }}
-            style={{ color: 'var(--primaryColor, #107180)' }}>
-            refreshing the page
-          </a>
-          {hasLogin && (
-            <>
-              , or{' '}
-              <a href={loginUrl} target="_blank" rel="noopener noreferrer"
-                style={{ color: 'var(--primaryColor, #107180)', fontWeight: 'bold' }}>
-                log in
-              </a>
-            </>
-          )}
-          .
-        </p>
-      </div>
-    );
-  }
+  if (!state.siteKey || resolved) return null;
 
   return (
     <TurnstileWidget
+      key={challengeKey}
       siteKey={state.siteKey}
-      onVerify={(token) => {
+      loginUrl={loginUrl}
+      onVerify={async (token) => {
         state.token = token;
         trackEvent?.({ type: 'chatbot_turnstile_completed' });
-        onResubmit(token);
+        const result = await onResubmit(token);
+        if (result === 'needs_another_challenge') {
+          // Proxy asked for another challenge — re-mount widget with new siteKey
+          setChallengeKey(k => k + 1);
+        } else {
+          // 'success' or 'error' — either way, the modal is done.
+          // handleTurnstileResubmit already injected the answer or error
+          // message into chat.
+          setResolved(true);
+        }
       }}
       onError={() => {
-        // Cloudflare's widget has exhausted its own retries — show guidance
-        setFailed(true);
+        // Widget-level failure (Cloudflare couldn't verify) — user saw
+        // error UI in the modal and chose Close.
+        setResolved(true);
         trackEvent?.({ type: 'chatbot_turnstile_error' });
       }}
     />
@@ -213,8 +202,12 @@ export const createQAFlow = ({
   // Auto-resubmit after visible Turnstile challenge completes.
   // Called from TurnstileWidgetWrapper's onVerify — fetches the pending query
   // with the new token and injects the response directly into the chat.
-  const handleTurnstileResubmit = async (token: string) => {
-    if (!turnstileState.pendingQuery || !injectMessage) return;
+  // Returns: 'success' | 'needs_another_challenge' | 'error'
+  const handleTurnstileResubmit = async (token: string): Promise<'success' | 'needs_another_challenge' | 'error'> => {
+    if (!turnstileState.pendingQuery || !injectMessage) {
+      logger.error('Turnstile resubmit called without pending query or injectMessage');
+      return 'error';
+    }
 
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -223,6 +216,7 @@ export const createQAFlow = ({
         headers['X-Session-ID'] = turnstileState.pendingQuery.sessionId;
         headers['X-Query-ID'] = turnstileState.pendingQuery.queryId;
       }
+      headers['X-Origin'] = resourceContext || 'access';
 
       const retryBody: Record<string, string> = {
         query: turnstileState.pendingQuery.query,
@@ -234,7 +228,7 @@ export const createQAFlow = ({
         retryBody._backend = backendId;
       }
       if (resourceContext) {
-        retryBody.resource_context = resourceContext;
+        retryBody.rp_name = resourceContext;
       }
 
       const retryResponse = await fetch(endpoint, {
@@ -310,7 +304,7 @@ export const createQAFlow = ({
           success: true,
           responseLength: collectedTokens.length,
         });
-        return;
+        return 'success';
       }
 
       // JSON response path (discovery, repeated Turnstile challenge)
@@ -321,7 +315,7 @@ export const createQAFlow = ({
         turnstileState.siteKey = body.site_key;
         turnstileState.token = null;
         await injectMessage("Still verifying — please complete the challenge again.");
-        return;
+        return 'needs_another_challenge';
       }
 
       // Clear Turnstile state — challenge is resolved
@@ -350,6 +344,7 @@ export const createQAFlow = ({
         success: true,
         responseLength: text.length,
       });
+      return 'success';
     } catch (error) {
       logger.error('Error resubmitting after Turnstile:', error);
       turnstileState.token = null;
@@ -357,6 +352,7 @@ export const createQAFlow = ({
       turnstileState.needsChallenge = false;
       turnstileState.siteKey = null;
       await injectMessage?.("I had trouble processing your question after verification. Please try again.");
+      return 'error';
     }
   };
 
@@ -462,6 +458,7 @@ export const createQAFlow = ({
             headers['X-Session-ID'] = currentSessionId;
             headers['X-Query-ID'] = queryId;
           }
+          headers['X-Origin'] = resourceContext || 'access';
           // Build request body — include silent Turnstile token when available
           const requestBody: Record<string, string> = {
             query: userInput,
@@ -472,7 +469,7 @@ export const createQAFlow = ({
             requestBody._backend = backendId;
           }
           if (resourceContext) {
-            requestBody.resource_context = resourceContext;
+            requestBody.rp_name = resourceContext;
           }
           const silentToken = getTurnstileToken?.();
           if (silentToken) {
