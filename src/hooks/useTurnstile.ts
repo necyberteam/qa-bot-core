@@ -105,6 +105,7 @@ export function useTurnstile(siteKey: string | undefined): UseTurnstileResult {
           'error-callback': () => {
             if (!mountedRef.current) return;
             logger.error('Turnstile silent verification failed');
+            setToken(null);
             setStatus('failed');
           },
           'expired-callback': () => {
