@@ -428,8 +428,16 @@ The bot fires analytics events via an optional callback prop, allowing you to wi
 | `chatbot_answer_error` | API call fails | `sessionId`, `queryId`, `errorType` |
 | `chatbot_rating_sent` | User rates response | `sessionId`, `queryId`, `rating` |
 | `chatbot_login_prompt_shown` | Login gate displayed | `sessionId` |
+| `chatbot_login_clicked` | User clicks login link | `sessionId`, `loginUrl` |
+| `chatbot_link_clicked` | User clicks a link in a bot message | `sessionId`, `linkUrl`, `linkText` |
+| `chatbot_turnstile_shown` | Visible Turnstile challenge displayed | `sessionId`, `queryId` |
+| `chatbot_turnstile_completed` | User solved visible challenge | `sessionId` |
+| `chatbot_turnstile_error` | Visible challenge failed or was cancelled | `sessionId`, `queryId`, `failureReason`, `cloudflareErrorCode` |
+| `chatbot_turnstile_silent_failed` | Silent verification failed on page load | `sessionId`, `failureReason`, `cloudflareErrorCode` |
 
 All events include `type` and `timestamp`. The `sessionId` is auto-injected when available.
+
+See **[docs/analytics.md](docs/analytics.md)** for the full event reference, wiring examples, and monitoring guidance.
 
 **TypeScript:**
 

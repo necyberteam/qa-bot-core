@@ -16,7 +16,8 @@ export type QABotAnalyticsEventType =
   | 'chatbot_link_clicked'
   | 'chatbot_turnstile_shown'
   | 'chatbot_turnstile_completed'
-  | 'chatbot_turnstile_error';
+  | 'chatbot_turnstile_error'
+  | 'chatbot_turnstile_silent_failed';
 
 /**
  * Analytics event payload
@@ -38,6 +39,10 @@ export type QABotAnalyticsEventType =
  * - chatbot_login_prompt_shown: (common fields only)
  * - chatbot_login_clicked: loginUrl
  * - chatbot_link_clicked: linkUrl, linkText
+ * - chatbot_turnstile_shown: queryId — visible challenge displayed to user
+ * - chatbot_turnstile_completed: queryId — user solved visible challenge
+ * - chatbot_turnstile_error: queryId, failureReason — visible challenge failed
+ * - chatbot_turnstile_silent_failed: failureReason — silent verification failed on page load
  */
 export interface QABotAnalyticsEvent {
   type: QABotAnalyticsEventType;
@@ -57,6 +62,9 @@ export interface QABotAnalyticsEvent {
   hasMetadata?: boolean;
   // chatbot_answer_error
   errorType?: string;
+  // chatbot_turnstile_error / chatbot_turnstile_silent_failed
+  failureReason?: 'widget_error' | 'token_expired' | 'script_load_failed' | 'api_unavailable' | 'user_cancelled';
+  cloudflareErrorCode?: string;
   // chatbot_rating_sent
   rating?: 'helpful' | 'not_helpful';
   // chatbot_close

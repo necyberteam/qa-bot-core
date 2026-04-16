@@ -135,7 +135,13 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
 
   // Silent Turnstile verification — renders an invisible widget on mount.
   // Token is stored in a ref so the flow can read it without recreating.
-  const turnstile = useTurnstile(turnstileSiteKey);
+  // Pass a lightweight stub for analytics; actual trackEvent uses the
+  // AnalyticsProvider set up below, which isn't available this early.
+  // We proxy through a ref that the provider populates once mounted.
+  const turnstileTrackRef = useRef<((e: { type: 'chatbot_turnstile_silent_failed'; failureReason: string }) => void) | null>(null);
+  const turnstile = useTurnstile(turnstileSiteKey, (event) => {
+    turnstileTrackRef.current?.(event);
+  });
   const turnstileTokenRef = useRef<string | null>(null);
   turnstileTokenRef.current = turnstile.token;
 
@@ -167,6 +173,12 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       });
     }
   }, [onAnalyticsEvent, isEmbeddedMode]);
+
+  // Wire the turnstile ref to trackEvent so silent verification failures
+  // flow through the same analytics pipeline as other events.
+  useEffect(() => {
+    turnstileTrackRef.current = (event) => trackEvent(event as AnalyticsEventInput);
+  }, [trackEvent]);
 
   // Build settings: Fixed settings + overridable props
   const settings = useMemo((): Settings => {

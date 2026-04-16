@@ -107,12 +107,18 @@ interface TurnstileWidgetWrapperProps {
 }
 
 function TurnstileWidgetWrapper({ getState, onResubmit, trackEvent, loginUrl }: TurnstileWidgetWrapperProps) {
-  const [resolved, setResolved] = React.useState(false);
+  // Track which siteKey we've already resolved against. When a NEW challenge
+  // is requested (siteKey changes), we want the widget to reappear — we
+  // can't use a plain `resolved` boolean because it would permanently
+  // suppress future challenges for the same wrapper instance.
+  const [resolvedFor, setResolvedFor] = React.useState<string | null>(null);
   // Incremented to force re-mount of TurnstileWidget when a re-challenge is needed
   const [challengeKey, setChallengeKey] = React.useState(0);
   const state = getState();
 
-  if (!state.siteKey || resolved) return null;
+  // Hide the widget if there's no active challenge, or if we've already
+  // resolved the current one. A different siteKey means a new challenge.
+  if (!state.siteKey || resolvedFor === state.siteKey) return null;
 
   return (
     <TurnstileWidget
@@ -127,17 +133,22 @@ function TurnstileWidgetWrapper({ getState, onResubmit, trackEvent, loginUrl }: 
           // Proxy asked for another challenge — re-mount widget with new siteKey
           setChallengeKey(k => k + 1);
         } else {
-          // 'success' or 'error' — either way, the modal is done.
-          // handleTurnstileResubmit already injected the answer or error
-          // message into chat.
-          setResolved(true);
+          // 'success' or 'error' — this challenge is done. Mark it resolved
+          // against the current siteKey so future challenges (different key)
+          // will re-render the widget.
+          setResolvedFor(state.siteKey);
         }
       }}
-      onError={() => {
+      onError={(reason, errorCode) => {
         // Widget-level failure (Cloudflare couldn't verify) — user saw
-        // error UI in the modal and chose Close.
-        setResolved(true);
-        trackEvent?.({ type: 'chatbot_turnstile_error' });
+        // error UI in the modal and chose Close, or cancelled the challenge.
+        setResolvedFor(state.siteKey);
+        trackEvent?.({
+          type: 'chatbot_turnstile_error',
+          queryId: state.pendingQuery?.queryId,
+          failureReason: reason,
+          cloudflareErrorCode: errorCode,
+        });
       }}
     />
   );

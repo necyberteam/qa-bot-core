@@ -20,6 +20,13 @@ import { logger } from '../utils/logger';
 
 export type TurnstileStatus = 'idle' | 'loading' | 'verified' | 'failed';
 
+export type TurnstileFailureReason =
+  | 'widget_error'
+  | 'token_expired'
+  | 'script_load_failed'
+  | 'api_unavailable'
+  | 'user_cancelled';
+
 export interface UseTurnstileResult {
   /** Current Turnstile token, or null if not yet verified / failed. */
   token: string | null;
@@ -29,11 +36,21 @@ export interface UseTurnstileResult {
   reset: () => void;
 }
 
+interface TurnstileAnalyticsEvent {
+  type: 'chatbot_turnstile_silent_failed';
+  failureReason: TurnstileFailureReason;
+  cloudflareErrorCode?: string;
+}
+
 /**
  * @param siteKey  Cloudflare Turnstile site key.  Pass `undefined` or empty
  *                 string to disable (hook becomes a no-op).
+ * @param onEvent  Optional analytics callback for silent verification failures.
  */
-export function useTurnstile(siteKey: string | undefined): UseTurnstileResult {
+export function useTurnstile(
+  siteKey: string | undefined,
+  onEvent?: (event: TurnstileAnalyticsEvent) => void,
+): UseTurnstileResult {
   const [token, setToken] = useState<string | null>(null);
   const [status, setStatus] = useState<TurnstileStatus>('idle');
 
@@ -86,6 +103,7 @@ export function useTurnstile(siteKey: string | undefined): UseTurnstileResult {
         if (!turnstile || !containerRef.current) {
           logger.error('Turnstile API not available for silent verification');
           setStatus('failed');
+          onEvent?.({ type: 'chatbot_turnstile_silent_failed', failureReason: 'api_unavailable' });
           return;
         }
 
@@ -102,11 +120,18 @@ export function useTurnstile(siteKey: string | undefined): UseTurnstileResult {
             setToken(t);
             setStatus('verified');
           },
-          'error-callback': () => {
-            if (!mountedRef.current) return;
-            logger.error('Turnstile silent verification failed');
+          'error-callback': (errorCode: string) => {
+            if (!mountedRef.current) return true;
+            logger.error('Turnstile silent verification failed:', errorCode);
             setToken(null);
             setStatus('failed');
+            onEvent?.({
+              type: 'chatbot_turnstile_silent_failed',
+              failureReason: 'widget_error',
+              cloudflareErrorCode: errorCode,
+            });
+            // Return true to prevent Turnstile from auto-retrying indefinitely.
+            return true;
           },
           'expired-callback': () => {
             if (!mountedRef.current) return;
@@ -124,6 +149,7 @@ export function useTurnstile(siteKey: string | undefined): UseTurnstileResult {
         if (!mountedRef.current) return;
         logger.error('Failed to load Turnstile script for silent verification:', err);
         setStatus('failed');
+        onEvent?.({ type: 'chatbot_turnstile_silent_failed', failureReason: 'script_load_failed' });
       });
 
     return () => {

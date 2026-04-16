@@ -3,10 +3,17 @@ import { createPortal } from 'react-dom';
 import { loadTurnstileScript } from '../utils/turnstile';
 import { logger } from '../utils/logger';
 
+export type TurnstileWidgetFailureReason =
+  | 'widget_error'
+  | 'token_expired'
+  | 'script_load_failed'
+  | 'api_unavailable'
+  | 'user_cancelled';
+
 interface TurnstileWidgetProps {
   siteKey: string;
   onVerify: (token: string) => void;
-  onError?: () => void;
+  onError?: (reason: TurnstileWidgetFailureReason, errorCode?: string) => void;
   loginUrl?: string;
 }
 
@@ -24,6 +31,9 @@ const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({ siteKey, onVerify, on
   const widgetIdRef = useRef<string | null>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const [failed, setFailed] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const failureReasonRef = useRef<TurnstileWidgetFailureReason>('widget_error');
+  const cloudflareErrorCodeRef = useRef<string | null>(null);
 
   const hasLogin = loginUrl && loginUrl !== '/login';
 
@@ -38,8 +48,14 @@ const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({ siteKey, onVerify, on
 
   const handleDismiss = useCallback(() => {
     removeTurnstileWidget();
-    onError?.();
-  }, [onError, removeTurnstileWidget]);
+    // If the widget already failed, report the actual failure reason.
+    // Otherwise the user is cancelling a pending challenge.
+    if (failed) {
+      onError?.(failureReasonRef.current, cloudflareErrorCodeRef.current ?? undefined);
+    } else {
+      onError?.('user_cancelled');
+    }
+  }, [onError, removeTurnstileWidget, failed]);
 
   // Clean up widget on unmount
   useEffect(() => {
@@ -92,6 +108,7 @@ const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({ siteKey, onVerify, on
         const turnstile = (window as any).turnstile;
         if (!turnstile || !containerRef.current) {
           logger.error('Turnstile API not available after script load');
+          failureReasonRef.current = 'api_unavailable';
           setFailed(true);
           return;
         }
@@ -102,13 +119,20 @@ const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({ siteKey, onVerify, on
             logger.turnstile('Visible challenge completed');
             onVerify(token);
           },
-          'error-callback': () => {
-            logger.error('Turnstile challenge failed');
+          'error-callback': (errorCode: string) => {
+            logger.error('Turnstile challenge failed:', errorCode);
+            cloudflareErrorCodeRef.current = errorCode;
+            failureReasonRef.current = 'widget_error';
             removeTurnstileWidget();
             setFailed(true);
+            // Return true to tell Turnstile we've handled the error.
+            // Without this, Turnstile auto-retries indefinitely and the
+            // widget appears stuck ("Turnstile Widget seem to have hung").
+            return true;
           },
           'expired-callback': () => {
             logger.error('Turnstile token expired');
+            failureReasonRef.current = 'token_expired';
             removeTurnstileWidget();
             setFailed(true);
           },
@@ -116,6 +140,7 @@ const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({ siteKey, onVerify, on
       })
       .catch((err) => {
         logger.error('Failed to load Turnstile script:', err);
+        failureReasonRef.current = 'script_load_failed';
         setFailed(true);
       });
   }, [siteKey, onVerify, failed]);
@@ -160,26 +185,48 @@ const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({ siteKey, onVerify, on
 
         {failed ? (
           <div style={{ fontSize: '14px', lineHeight: '1.5', color: '#333' }}>
-            <p style={{ margin: '0 0 16px 0' }}>
-              Verification failed. You can try again
-              {hasLogin && (
-                <>
-                  , or{' '}
-                  <a href={loginUrl} target="_blank" rel="noopener noreferrer"
-                    style={{ color: 'var(--primaryColor, #107180)', fontWeight: 'bold' }}>
-                    log in
-                  </a>{' '}
-                  to skip verification
-                </>
-              )}
-              .
-            </p>
+            {retryCount === 0 ? (
+              <p style={{ margin: '0 0 16px 0' }}>
+                Verification failed. You can try again
+                {hasLogin && (
+                  <>
+                    , or{' '}
+                    <a href={loginUrl} target="_blank" rel="noopener noreferrer"
+                      style={{ color: 'var(--primaryColor, #107180)', fontWeight: 'bold' }}>
+                      log in
+                    </a>{' '}
+                    to skip verification
+                  </>
+                )}
+                .
+              </p>
+            ) : (
+              <>
+                <p style={{ margin: '0 0 8px 0' }}>
+                  Verification is still not working. This can be caused by browser
+                  extensions (ad blockers, privacy tools) or VPN connections.
+                </p>
+                <p style={{ margin: '0 0 16px 0' }}>
+                  Try disabling extensions, using a private/incognito window,
+                  {hasLogin && (
+                    <>
+                      {' '}<a href={loginUrl} target="_blank" rel="noopener noreferrer"
+                        style={{ color: 'var(--primaryColor, #107180)', fontWeight: 'bold' }}>
+                        logging in
+                      </a>,
+                    </>
+                  )}
+                  {' '}or using a different browser.
+                </p>
+              </>
+            )}
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 type="button"
                 onClick={() => {
                   removeTurnstileWidget();
                   renderedRef.current = false;
+                  setRetryCount(c => c + 1);
                   setFailed(false);
                 }}
                 style={{
