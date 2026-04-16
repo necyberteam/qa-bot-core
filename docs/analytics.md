@@ -137,6 +137,8 @@ Common things to track with these events:
 - **Visible challenge conversion:** `chatbot_turnstile_completed` / `chatbot_turnstile_shown` — only meaningful when `chatbot_turnstile_shown > 0`
 - **Cloudflare error breakdown:** `chatbot_turnstile_error` grouped by `failureReason` and `cloudflareErrorCode` (for diagnosing blocked users)
 
+> **Note:** `chatbot_open` and `chatbot_close` only fire in floating mode. In embedded mode (`embedded={true}`), the chat is always visible — use your site's page views as the denominator for per-session metrics instead.
+
 ## No analytics without `onAnalyticsEvent`
 
 If you don't pass `onAnalyticsEvent`, events fire into the void. Analytics are fully opt-in — the chatbot never sends data to any third party unless you wire up the callback.

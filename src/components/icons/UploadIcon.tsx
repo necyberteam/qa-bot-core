@@ -1,7 +1,7 @@
 import React from 'react';
 import BaseIcon from './BaseIcon';
 
-const UploadIcon = (props) => {
+const UploadIcon: React.FC<React.SVGAttributes<SVGSVGElement>> = (props) => {
   return (
     <BaseIcon {...props}>
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

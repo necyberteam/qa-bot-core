@@ -74,8 +74,20 @@
         <div style="margin-bottom: 10px;">
             <input type="text" id="qa-endpoint-input" placeholder="Q&A Endpoint URL" style="width: 100%; max-width: 400px;" />
         </div>
-        <div style="margin-bottom: 15px;">
+        <div style="margin-bottom: 10px;">
             <input type="text" id="rating-endpoint-input" placeholder="Rating Endpoint URL (optional)" style="width: 100%; max-width: 400px;" />
+        </div>
+        <div style="margin-bottom: 10px;">
+            <input type="text" id="backend-id-input" placeholder="Backend ID (optional, for proxy routing)" style="width: 100%; max-width: 400px;" />
+        </div>
+        <div style="margin-bottom: 10px;">
+            <input type="text" id="turnstile-site-key-input" placeholder="Turnstile Site Key (optional)" style="width: 100%; max-width: 400px;" />
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display: inline-flex; align-items: center; gap: 6px;">
+                <input type="checkbox" id="allow-anon-input" />
+                Allow anonymous access
+            </label>
         </div>
         <button onclick="initializeBot()">Initialize</button>
         <div id="status-message" style="display: none;"></div>

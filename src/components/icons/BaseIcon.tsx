@@ -1,6 +1,13 @@
 import React from 'react';
 
-const BaseIcon = ({
+interface BaseIconProps extends React.SVGAttributes<SVGSVGElement> {
+  width?: number | string;
+  height?: number | string;
+  color?: string;
+  children?: React.ReactNode;
+}
+
+const BaseIcon: React.FC<BaseIconProps> = ({
   width = 24,
   height = 24,
   color = 'currentColor',

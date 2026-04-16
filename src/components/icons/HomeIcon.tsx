@@ -1,7 +1,7 @@
 import React from 'react';
 import BaseIcon from './BaseIcon';
 
-const HomeIcon = (props) => {
+const HomeIcon: React.FC<React.SVGAttributes<SVGSVGElement>> = (props) => {
   return (
     <BaseIcon {...props}>
       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />

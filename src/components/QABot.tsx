@@ -78,6 +78,9 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
     // Turnstile bot protection
     turnstileSiteKey,
 
+    // Backend ID for proxy routing
+    backendId,
+
     // Resource scoping
     resourceContext,
 
@@ -147,7 +150,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
 
   // Track if user is logged in (for internal reactivity)
   // Note: undefined is treated as "logged in" (open access mode)
-  const [internalIsLoggedIn, setInternalIsLoggedIn] = useState(isLoggedIn);
+  const [internalIsLoggedIn, setInternalIsLoggedIn] = useState<boolean | undefined>(isLoggedIn);
 
   // Sync isLoggedIn prop changes
   useEffect(() => {
@@ -233,7 +236,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       : null;
 
     base.footer = {
-      text: footerTextElement,
+      text: footerTextElement ?? undefined,
       buttons: [<NewChatButton key="new-chat-button" />]
     };
 
@@ -284,7 +287,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       trackEvent: trackEvent,
       getTurnstileToken: () => turnstileTokenRef.current,
       resetTurnstileToken: () => turnstile.reset(),
-      backendId: props.backendId,
+      backendId: backendId,
       resourceContext: resourceContext,
     });
 
@@ -302,7 +305,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       ...qaFlow,
       ...(customFlow || {})
     };
-  }, [apiKey, qaEndpoint, ratingEndpoint, agentRatingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, trackEvent, resourceContext]);
+  }, [apiKey, qaEndpoint, ratingEndpoint, agentRatingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, trackEvent, resourceContext, backendId]);
 
   // default react-chatbotify plugins
   const plugins = useMemo(() => {

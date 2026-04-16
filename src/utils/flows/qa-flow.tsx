@@ -23,8 +23,9 @@ export interface CreateQAFlowParams {
   sessionId: () => string | null;
   /** Function that returns whether we're currently resetting */
   isResetting?: () => boolean;
-  /** Whether the user is logged in (required) */
-  isLoggedIn: boolean;
+  /** Whether the user is logged in. `undefined` means "open access mode" —
+   *  treated as logged-in for gating purposes. */
+  isLoggedIn?: boolean;
   /** Allow Q&A without login (default: false) */
   allowAnonAccess?: boolean;
   /** Login URL to redirect to (optional) */
@@ -202,7 +203,7 @@ export const createQAFlow = ({
   const turnstileState = {
     siteKey: null as string | null,
     token: null as string | null,
-    pendingQuery: null as { query: string; sessionId: string; queryId: string } | null,
+    pendingQuery: null as { query: string; sessionId: string | null; queryId: string } | null,
     needsChallenge: false,
   };
 
@@ -231,10 +232,12 @@ export const createQAFlow = ({
 
       const retryBody: Record<string, string> = {
         query: turnstileState.pendingQuery.query,
-        session_id: turnstileState.pendingQuery.sessionId,
         question_id: turnstileState.pendingQuery.queryId,
         turnstile_token: token,
       };
+      if (turnstileState.pendingQuery.sessionId) {
+        retryBody.session_id = turnstileState.pendingQuery.sessionId;
+      }
       if (backendId) {
         retryBody._backend = backendId;
       }
@@ -380,12 +383,12 @@ export const createQAFlow = ({
 
         const { userInput } = chatState;
         if (isResetting && isResetting()) {
-          return null;
+          return;
         }
 
         // Skip processing if there's no user input (initial transition from start)
         if (!userInput || userInput.trim() === '') {
-          return null;
+          return;
         }
 
         // Handle feedback — route to correct endpoint based on rating_target
@@ -473,9 +476,11 @@ export const createQAFlow = ({
           // Build request body — include silent Turnstile token when available
           const requestBody: Record<string, string> = {
             query: userInput,
-            session_id: currentSessionId,
             question_id: queryId
           };
+          if (currentSessionId) {
+            requestBody.session_id = currentSessionId;
+          }
           if (backendId) {
             requestBody._backend = backendId;
           }
@@ -633,7 +638,7 @@ export const createQAFlow = ({
               responseLength: tokenContent.length,
             });
 
-            return null;
+            return;
           }
 
           // ── JSON path (discovery, Turnstile, fallback) ─────────────
@@ -684,7 +689,7 @@ export const createQAFlow = ({
             hasMetadata: !!metadataText
           });
 
-          return null;
+          return;
         } catch (error) {
           logger.error('Error in Q&A flow:', error);
 

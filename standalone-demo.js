@@ -7,6 +7,9 @@ function initializeBot() {
     const apiKey = document.getElementById('api-key-input').value.trim();
     const qaEndpoint = document.getElementById('qa-endpoint-input').value.trim();
     const ratingEndpoint = document.getElementById('rating-endpoint-input').value.trim();
+    const backendId = document.getElementById('backend-id-input').value.trim();
+    const turnstileSiteKey = document.getElementById('turnstile-site-key-input').value.trim();
+    const allowAnonAccess = document.getElementById('allow-anon-input').checked;
 
     if (!apiKey) {
         updateStatus('Please enter an API key', 'error');
@@ -26,11 +29,10 @@ function initializeBot() {
 
     if (typeof qaBotCore !== 'undefined') {
         try {
-            botController = qaBotCore({
+            const config = {
                 target: document.getElementById('qa-bot-container'),
                 apiKey: apiKey,
                 qaEndpoint: qaEndpoint,
-                ratingEndpoint: ratingEndpoint,
                 welcomeMessage: "Hello! How can I help you today?",
                 primaryColor: '#24292e',
                 secondaryColor: '#586069',
@@ -41,8 +43,18 @@ function initializeBot() {
                 tooltipText: "Need help? Click here to chat!",
                 embedded: false,
                 enabled: true,
-                defaultOpen: false
-            });
+                defaultOpen: false,
+                allowAnonAccess: allowAnonAccess,
+                isLoggedIn: !allowAnonAccess,
+                onAnalyticsEvent: (event) => {
+                    console.log('[analytics]', event.type, event);
+                },
+            };
+            if (ratingEndpoint) config.ratingEndpoint = ratingEndpoint;
+            if (backendId) config.backendId = backendId;
+            if (turnstileSiteKey) config.turnstileSiteKey = turnstileSiteKey;
+
+            botController = qaBotCore(config);
 
             updateStatus('Bot initialized successfully', 'success');
             console.log('QA Bot initialized successfully with API key');
@@ -69,9 +81,8 @@ function updateStatus(message, type) {
 
 // Initialize on page load
 window.addEventListener('load', function() {
-    // Pre-populate with ACCESS-CI endpoints as defaults
-    document.getElementById('qa-endpoint-input').value = 'https://access-ai-grace1-external.ccs.uky.edu/access/chat/api/';
-    document.getElementById('rating-endpoint-input').value = 'https://access-ai-grace1-external.ccs.uky.edu/access/chat/rating/';
+    // No pre-populated values — fill in your own endpoints and keys.
+    // See the README for guidance on proxy routing, Turnstile keys, etc.
 
     // Focus API key input
     document.getElementById('api-key-input').focus();

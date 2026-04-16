@@ -44,6 +44,9 @@ const config = [
         declaration: true,
         declarationDir: './dist/types',
         jsx: 'preserve', // Let Babel handle JSX
+        // Only process .ts/.tsx — let Babel handle .js/.jsx files to avoid
+        // TS5055 "cannot write file" warnings when .js output collides with .js source.
+        include: ['src/**/*.ts', 'src/**/*.tsx'],
       }),
       babel({
         babelHelpers: 'bundled',
