@@ -210,6 +210,12 @@
   .rcb-chat-header {
     padding: 12px 16px !important;
   }
+
+  /* Hide react-chatbotify callout (tooltip) on mobile */
+  .rcb-chat-tooltip,
+  .rcb-chat-tooltip-tail {
+    display: none !important;
+  }
 }
 
 @media (max-width: 480px) {
