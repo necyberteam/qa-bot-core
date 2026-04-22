@@ -3,7 +3,13 @@ import ReactDOM from 'react-dom/client';
 import QABot from './components/QABot';
 import type { BotControllerHandle, QABotAnalyticsEvent, QABotProps } from './config';
 import { logger } from './utils/logger';
-import './styles/index.css'; // QA Bot styles
+// CSS is extracted at build time to dist/qa-bot-core.css (see rollup.config.mjs).
+// Library consumers of the ESM/CJS bundle must import the stylesheet explicitly:
+//   import '@snf/qa-bot-core/dist/qa-bot-core.css';
+// The standalone UMD bundle (dist/qa-bot-core.standalone.js, used by plain HTML
+// pages like nairr-bot) still inlines CSS via postcss inject and needs no
+// additional import from consumers.
+import './styles/index.css';
 
 // Export the main component
 export { QABot };

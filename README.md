@@ -14,11 +14,46 @@ npm install @snf/qa-bot-core
 
 ### React Component
 
+#### Styles
+
+The ESM/CJS bundle ships its stylesheet as a standalone file. Import it
+once in your app so the chatbot's default layout and react-chatbotify
+base styles are applied:
+
+```jsx
+import '@snf/qa-bot-core/styles';
+// equivalent: import '@snf/qa-bot-core/dist/qa-bot-core.css';
+```
+
+This is required for React library consumers. Without it, the component
+will render unstyled.
+
+> **Why a separate import?** The previous version auto-injected styles
+> into `document.head` at runtime. That injection doesn't reach consumers
+> that render inside shadow DOM (e.g. Web Components, strict CSP
+> contexts). Extracting to a standalone stylesheet lets those consumers
+> import it directly into their own style scope.
+>
+> The standalone `dist/qa-bot-core.standalone.js` UMD bundle — loaded via
+> a `<script>` tag on a plain HTML page — still inlines CSS and needs no
+> explicit import.
+
+#### Link styling
+
+`qa-bot-core` does **not** ship default link colors, weights, or text
+decorations. Consumers style their own brand. If you want links inside
+the chat window to have a specific look, add rules in your own
+stylesheet targeting `.rcb-chat-window a` (general) and
+`.rcb-chat-window .rcb-bot-message a` (links inside bot-message
+bubbles). The only link rule in `qa-bot-core` is the
+`@media (prefers-contrast: high)` accessibility override.
+
 #### Basic Usage
-Just provide required props:
+Just provide required props, and import the stylesheet once in your app:
 
 ```jsx
 import QABot from '@snf/qa-bot-core';
+import '@snf/qa-bot-core/styles';
 
 function App() {
   return (
@@ -33,7 +68,7 @@ function App() {
 ```
 
 #### Full Configuration
-Customize appearance and behavior:
+Customize appearance and behavior. Don't forget to import `@snf/qa-bot-core/styles` once in your entry file (see Styles above):
 
 ```jsx
 <QABot

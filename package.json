@@ -9,7 +9,9 @@
       "import": "./dist/qa-bot-core.js",
       "require": "./dist/qa-bot-core.umd.cjs"
     },
-    "./standalone": "./dist/qa-bot-core.standalone.js"
+    "./standalone": "./dist/qa-bot-core.standalone.js",
+    "./styles": "./dist/qa-bot-core.css",
+    "./dist/qa-bot-core.css": "./dist/qa-bot-core.css"
   },
   "unpkg": "./dist/qa-bot-core.standalone.js",
   "types": "./dist/types/index.d.ts",

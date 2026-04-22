@@ -22,28 +22,6 @@
   font-weight: 700;
 }
 
-.rcb-chat-window a {
-  font-weight: 700;
-  color: #000000;
-  text-decoration: underline;
-}
-
-.rcb-chat-window a:hover {
-  color: var(--primaryColor, #107180);
-}
-
-.rcb-chat-window .rcb-bot-message a,
-.rcb-chat-window .rcb-bot-message a:link,
-.rcb-chat-window .rcb-bot-message a:visited {
-  text-decoration: underline !important;
-  color: #ffffff !important;
-}
-
-.rcb-chat-window .rcb-bot-message a:hover {
-  text-decoration: underline !important;
-  opacity: 0.85;
-}
-
 .rcb-chat-window .rcb-chat-input-textarea {
   overflow-y: auto;
 }

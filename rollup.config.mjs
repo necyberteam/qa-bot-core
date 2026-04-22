@@ -35,9 +35,13 @@ const config = [
       postcss({
         extensions: ['.css'],
         minimize: true,
-        inject: {
-          insertAt: 'top',
-        },
+        // Extract CSS to a standalone file so consumers that can't execute
+        // runtime JS style-injection (e.g. access-ci-ui's shadow DOM wrapper)
+        // can import the stylesheet directly:
+        //   import '@snf/qa-bot-core/dist/qa-bot-core.css';
+        // The standalone build below keeps inject semantics because it's
+        // loaded as a plain <script> on HTML pages (e.g. nairr-bot).
+        extract: 'qa-bot-core.css',
       }),
       typescript({
         tsconfig: './tsconfig.json',
