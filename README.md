@@ -586,6 +586,10 @@ REACT_APP_RATING_ENDPOINT=https://your-api.com/rating  # optional
 npm run build:lib
 ```
 
+### Turnstile widget styling
+
+The Turnstile challenge modal only appears when the backend proxy requests it, which makes iterating on its styling slow. To force it to render unconditionally, set `VITE_FORCE_TURNSTILE_WIDGET=true` in the consumer's `.env` — the widget will mount on every chat session using `VITE_TURNSTILE_SITE_KEY` as its site key. The modal `onVerify`/`onError` callbacks still fire but no-op gracefully since there's no pending query to resubmit. Leave unset in production.
+
 
 ## License
 

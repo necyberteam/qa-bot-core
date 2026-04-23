@@ -117,14 +117,20 @@ function TurnstileWidgetWrapper({ getState, onResubmit, trackEvent, loginUrl }: 
   const [challengeKey, setChallengeKey] = React.useState(0);
   const state = getState();
 
-  // Hide the widget if there's no active challenge, or if we've already
-  // resolved the current one. A different siteKey means a new challenge.
-  if (!state.siteKey || resolvedFor === state.siteKey) return null;
+  // Dev-only force-render for widget styling work: VITE_FORCE_TURNSTILE_WIDGET=true
+  // keeps the modal mounted regardless of proxy state. Defaults off. See README.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const env = (import.meta as any).env ?? {};
+  const forceRender = env.VITE_FORCE_TURNSTILE_WIDGET === 'true';
+  const effectiveSiteKey = state.siteKey ?? (forceRender ? env.VITE_TURNSTILE_SITE_KEY : null);
+
+  if (!effectiveSiteKey) return null;
+  if (!forceRender && resolvedFor === effectiveSiteKey) return null;
 
   return (
     <TurnstileWidget
       key={challengeKey}
-      siteKey={state.siteKey}
+      siteKey={effectiveSiteKey}
       loginUrl={loginUrl}
       onVerify={async (token) => {
         state.token = token;
@@ -386,7 +392,7 @@ export const createQAFlow = ({
           return;
         }
 
-        // Skip processing if there's no user input (initial transition from start)
+        // Skip processing if there's no user input.
         if (!userInput || userInput.trim() === '') {
           return;
         }

@@ -247,6 +247,7 @@ const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({ siteKey, onVerify, on
                 style={{
                   padding: '8px 16px',
                   background: '#f0f0f0',
+                  color: '#333',
                   border: '1px solid #ccc',
                   borderRadius: '4px',
                   cursor: 'pointer',
@@ -267,6 +268,7 @@ const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({ siteKey, onVerify, on
                 marginTop: '16px',
                 padding: '8px 16px',
                 background: '#f0f0f0',
+                color: '#333',
                 border: '1px solid #ccc',
                 borderRadius: '4px',
                 cursor: 'pointer',
