@@ -76,7 +76,8 @@
 }
 
 /* Ensure tooltip meets WCAG 2 AA contrast (4.5:1 minimum) */
-.rcb-chat-tooltip {
+.rcb-chat-tooltip,
+.rcb-chat-tooltip > span {
   background-color: #1a5b6e;
   color: #ffffff;
 }

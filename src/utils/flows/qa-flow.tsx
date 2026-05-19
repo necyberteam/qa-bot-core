@@ -133,6 +133,11 @@ function TurnstileWidgetWrapper({ getState, onResubmit, trackEvent, loginUrl }: 
       siteKey={effectiveSiteKey}
       loginUrl={loginUrl}
       onVerify={async (token) => {
+        // Capture the siteKey BEFORE awaiting onResubmit. The resubmit clears
+        // state.siteKey on success, so reading it afterward gives null, and
+        // setResolvedFor(null) is a no-op when resolvedFor is already null —
+        // the modal would never unmount on a first successful challenge.
+        const challengeSiteKey = effectiveSiteKey;
         state.token = token;
         trackEvent?.({ type: 'chatbot_turnstile_completed' });
         const result = await onResubmit(token);
@@ -141,18 +146,26 @@ function TurnstileWidgetWrapper({ getState, onResubmit, trackEvent, loginUrl }: 
           setChallengeKey(k => k + 1);
         } else {
           // 'success' or 'error' — this challenge is done. Mark it resolved
-          // against the current siteKey so future challenges (different key)
-          // will re-render the widget.
-          setResolvedFor(state.siteKey);
+          // against the siteKey we challenged for so the wrapper bails out
+          // on the next render. state.siteKey has been cleared inside
+          // onResubmit, so the !effectiveSiteKey guard also returns null.
+          setResolvedFor(challengeSiteKey);
         }
       }}
       onError={(reason, errorCode) => {
-        // Widget-level failure (Cloudflare couldn't verify) — user saw
-        // error UI in the modal and chose Close, or cancelled the challenge.
-        setResolvedFor(state.siteKey);
+        // Widget-level failure or user cancellation — clear flow state so
+        // the chat returns to a clean idle, then mark the challenge resolved.
+        // Capture queryId before clearing pendingQuery.
+        const queryId = state.pendingQuery?.queryId;
+        const challengeSiteKey = effectiveSiteKey;
+        state.token = null;
+        state.pendingQuery = null;
+        state.needsChallenge = false;
+        state.siteKey = null;
+        setResolvedFor(challengeSiteKey);
         trackEvent?.({
           type: 'chatbot_turnstile_error',
-          queryId: state.pendingQuery?.queryId,
+          queryId,
           failureReason: reason,
           cloudflareErrorCode: errorCode,
         });
