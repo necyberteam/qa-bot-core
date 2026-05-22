@@ -261,7 +261,12 @@ export const createQAFlow = ({
         retryBody._backend = backendId;
       }
       if (resourceContext) {
+        // rp_name is the legacy field name used by qa-bot-proxy.
+        // resource_context is the canonical field name on the agent's
+        // /api/v1/query endpoint. Send both during the transition so the
+        // same client works against either backend without negotiation.
         retryBody.rp_name = resourceContext;
+        retryBody.resource_context = resourceContext;
       }
 
       const retryResponse = await fetch(endpoint, {
@@ -504,7 +509,12 @@ export const createQAFlow = ({
             requestBody._backend = backendId;
           }
           if (resourceContext) {
+            // rp_name is the legacy field name used by qa-bot-proxy.
+            // resource_context is the canonical field name on the agent's
+            // /api/v1/query endpoint. Send both during the transition so the
+            // same client works against either backend without negotiation.
             requestBody.rp_name = resourceContext;
+            requestBody.resource_context = resourceContext;
           }
           const silentToken = getTurnstileToken?.();
           if (silentToken) {
