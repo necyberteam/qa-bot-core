@@ -75,10 +75,12 @@
   max-width: 100%;
 }
 
-/* Ensure tooltip meets WCAG 2 AA contrast (4.5:1 minimum) */
-.rcb-chat-tooltip,
-.rcb-chat-tooltip > span {
-  background-color: #1a5b6e;
+/* react-chatbotify sets the tooltip background via an inline style that axe
+ * can't read during static analysis, so it reports white-on-white contrast
+ * failures on the text. Paint the text span directly so axe sees a definite
+ * background. Matches the parent's inline secondaryColor visually. */
+.rcb-chat-tooltip > span:not(.rcb-chat-tooltip-tail) {
+  background-color: #107180;
   color: #ffffff;
 }
 .rcb-chat-tooltip-tail {
