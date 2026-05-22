@@ -1,6 +1,6 @@
 {
   "name": "@snf/qa-bot-core",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "A configurable chatbot setup for quick integration of RAG-powered Q&A and rating system",
   "main": "./dist/qa-bot-core.umd.cjs",
   "module": "./dist/qa-bot-core.js",
@@ -64,6 +64,15 @@
     "build:lib": "rollup -c",
     "prepublishOnly": "npm run build:lib",
     "test": "react-app-rewired test"
+  },
+  "eslintConfig": {
+    "extends": "react-app",
+    "overrides": [
+      {
+        "files": ["*.ts", "*.tsx"],
+        "plugins": ["@typescript-eslint"]
+      }
+    ]
   },
   "browserslist": {
     "production": [
