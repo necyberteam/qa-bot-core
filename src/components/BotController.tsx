@@ -1,4 +1,4 @@
-import React, { useImperativeHandle, useEffect, useRef, forwardRef } from 'react';
+import { useImperativeHandle, useEffect, useRef, forwardRef } from 'react';
 import { useMessages, useChatWindow } from "react-chatbotify";
 import type { BotControllerHandle } from '../config';
 

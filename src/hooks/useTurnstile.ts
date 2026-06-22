@@ -156,6 +156,11 @@ export function useTurnstile(
       mountedRef.current = false;
       cleanup();
     };
+    // `onEvent` is intentionally omitted: callers pass a new inline function
+    // each render, so including it would re-run this effect (which renders and
+    // tears down the Turnstile widget) on every render, causing flicker and
+    // repeated silent verifications.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteKey, cleanup]);
 
   // Reset the widget to generate a fresh token. Cloudflare Turnstile tokens

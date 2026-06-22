@@ -46,7 +46,6 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
 
     // Optional functionality
     ratingEndpoint,
-    capabilitiesEndpoint,
     agentRatingEndpoint,
     welcomeMessage,
     open,
@@ -310,6 +309,11 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       ...qaFlow,
       ...(customFlow || {})
     };
+    // `turnstile` is intentionally omitted: it is only used via the stable
+    // `turnstileTokenRef` (token) and a `turnstile.reset()` closure. Including
+    // the hook's object — which is a new reference each render — would recreate
+    // the entire flow on every render and reset the conversation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey, qaEndpoint, ratingEndpoint, agentRatingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, trackEvent, resourceContext, backendId]);
 
   // default react-chatbotify plugins
