@@ -377,6 +377,28 @@
   outline-offset: 2px !important;
 }
 
+/* Heading spacing in bot messages — keep section headings tight against the
+   surrounding text. (Paragraph, table, and code styling now live in the
+   MarkdownContent component's react-markdown overrides, not here.) */
+.rcb-bot-message h1,
+.rcb-bot-message h2,
+.rcb-bot-message h3,
+.rcb-bot-message h4,
+.rcb-bot-message h5,
+.rcb-bot-message h6 {
+  margin: 0.6em 0 0.3em !important;
+  line-height: 1.3 !important;
+}
+
+.rcb-bot-message h1:first-child,
+.rcb-bot-message h2:first-child,
+.rcb-bot-message h3:first-child,
+.rcb-bot-message h4:first-child,
+.rcb-bot-message h5:first-child,
+.rcb-bot-message h6:first-child {
+  margin-top: 0 !important;
+}
+
 /* List formatting in bot messages — override @rcb-plugins/markdown-renderer
    inline styles that set list-style-position: inside, causing markers to
    appear on a separate line from the text when <p> tags are present */
@@ -447,6 +469,28 @@
   border-color: var(--secondaryColor, #107180) !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 2px 4px rgba(16, 113, 128, 0.2) !important;
+}
+
+/* Disable past rating thumbs. The Q&A flow loops on one path, so older
+   feedback option blocks stay live in the DOM, and a click on an old thumb
+   would submit feedback against the CURRENT answer. react-chatbotify wraps
+   each options block in its own .rcb-bot-message-container and renders all
+   turns as siblings in the chat body. A thumbs block is "past" if ANY newer
+   message follows it — a new user question (.rcb-user-message-container) or a
+   later answer that itself has options. (We can't use "any following sibling"
+   because a hidden .rcb-message-prompt-container is always the last child.)
+   Disable those so only the latest thumbs are interactive. */
+.rcb-bot-message-container:has(.rcb-options-container):has(
+    ~ .rcb-user-message-container
+  )
+  .rcb-options,
+.rcb-bot-message-container:has(.rcb-options-container):has(
+    ~ .rcb-bot-message-container .rcb-options-container
+  )
+  .rcb-options {
+  pointer-events: none !important;
+  opacity: 0.5 !important;
+  cursor: default !important;
 }
 
 .rcb-options:focus,

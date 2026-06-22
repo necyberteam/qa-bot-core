@@ -4,6 +4,7 @@ import ChatBot, { ChatBotProvider, Button } from "react-chatbotify";
 import HtmlRenderer from "@rcb-plugins/html-renderer";
 import MarkdownRenderer from "@rcb-plugins/markdown-renderer";
 import InputValidator from "@rcb-plugins/input-validator";
+import MarkdownContent from './MarkdownContent';
 import BotController from './BotController';
 import LoginButton from './LoginButton';
 import UserIcon from './UserIcon';
@@ -247,10 +248,14 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       defaultOpen: isEmbeddedMode ? true : false
     };
 
-    // Enable events for message tracking
+    // Enable events for message tracking.
+    // rcbStopStreamMessage is required so streamed bot answers get persisted —
+    // streaming never fires rcbPreInjectMessage, so without this the history
+    // would restore user queries with no answers. See SessionMessageTracker.
     base.event = {
       rcbPreInjectMessage: true,
       rcbPostInjectMessage: true,
+      rcbStopStreamMessage: true,
       rcbUserSubmitText: true,
       rcbChangePath: true,
       rcbToggleChatWindow: true
@@ -309,7 +314,7 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
 
   // default react-chatbotify plugins
   const plugins = useMemo(() => {
-    return [HtmlRenderer(), MarkdownRenderer(), InputValidator()];
+    return [HtmlRenderer(), MarkdownRenderer({ markdownComponent: MarkdownContent }), InputValidator()];
   }, []);
 
   // Apply hooks
