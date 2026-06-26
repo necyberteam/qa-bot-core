@@ -143,7 +143,7 @@ const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({ siteKey, onVerify, on
         failureReasonRef.current = 'script_load_failed';
         setFailed(true);
       });
-  }, [siteKey, onVerify, failed]);
+  }, [siteKey, onVerify, failed, removeTurnstileWidget]);
 
   const modal = (
     <>

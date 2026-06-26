@@ -19,6 +19,9 @@ function ExampleApp() {
   const apiKey = process.env.REACT_APP_API_KEY || null;
   const qaEndpoint = process.env.REACT_APP_QA_ENDPOINT || null;
   const ratingEndpoint = process.env.REACT_APP_RATING_ENDPOINT || null;
+  // Agent-targeted answers (rating_target: "agent") rate to this endpoint.
+  // Without it, those answers show no thumbs even when ratingEndpoint is set.
+  const agentRatingEndpoint = process.env.REACT_APP_AGENT_RATING_ENDPOINT || null;
 
   // Environment variables are now used directly
 
@@ -152,6 +155,7 @@ function ExampleApp() {
                 apiKey={apiKey}
                 qaEndpoint={qaEndpoint}
                 ratingEndpoint={ratingEndpoint}
+                agentRatingEndpoint={agentRatingEndpoint}
                 welcomeMessage="What can I help you with?"
                 botName="Q&A Assistant"
                 placeholder="Type your question here..."
@@ -184,6 +188,7 @@ function ExampleApp() {
           apiKey={apiKey}
           qaEndpoint={qaEndpoint}
           ratingEndpoint={ratingEndpoint}
+          agentRatingEndpoint={agentRatingEndpoint}
           welcomeMessage="What can I help you with?"
           botName="Q&A Assistant"
           placeholder="Type your question here..."

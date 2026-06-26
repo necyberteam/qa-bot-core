@@ -2,6 +2,47 @@
 
 This document outlines the simplified process for publishing the QA Bot Core package to npm.
 
+## Why the `build/` directory is committed to git (read this first)
+
+Unlike most projects, **the compiled `build/` directory is committed to git on
+purpose** — do not gitignore it or assume it's stale build output.
+
+The reason is our **primary CDN is jsDelivr serving files directly from the
+GitHub repo** at a version tag:
+
+```
+https://cdn.jsdelivr.net/gh/necyberteam/qa-bot-core@v${version}/build/static/js/main.js
+https://cdn.jsdelivr.net/gh/necyberteam/qa-bot-core@v${version}/build/static/js/453.chunk.js
+https://cdn.jsdelivr.net/gh/necyberteam/qa-bot-core@v${version}/build/static/css/main.css
+```
+
+Every site that embeds the bot via jsDelivr loads these exact committed files
+from the **tagged release commit** (`@v${version}`). The CDN never serves
+`build/` from a feature branch or from `main` between releases — only from tags.
+So the rule is:
+
+- **The tagged release commit must contain a fresh `build/` that matches its
+  source.** Regenerate (`npm run build`) and commit `build/` as part of the
+  version-bump / release step, then tag. Stale or missing `build/` files at a
+  tag mean the CDN serves stale or broken code to every embedder.
+- **Feature PRs should stay source-only.** A source change dirties `build/`,
+  but committing minified artifacts in feature PRs is unreviewable noise and a
+  constant source of merge conflicts. Revert the `build/` changes in feature
+  work; it gets regenerated once, cleanly, at release.
+- Build with the **same toolchain as CI** (see `netlify.toml` for the Node
+  version) so the tagged artifacts match what the deploy produces. Building on
+  a different Node version can produce non-identical output.
+
+Two different output directories, two different purposes:
+
+| Dir | Build command | Tracked in git? | Consumed by |
+|-----|---------------|-----------------|-------------|
+| `build/` | `npm run build` (CRA) | **Yes — committed** | jsDelivr CDN (`/gh/...@vX/build/...`) |
+| `dist/` | `npm run build:lib` (rollup) | No — gitignored | npm / unpkg (`@snf/qa-bot-core`) |
+
+`dist/` is regenerated automatically at publish time via `prepublishOnly`, so it
+does not need to be committed. `build/` does.
+
 ## Version Management
 
 In our project, version management is critical because of our CDN delivery system:

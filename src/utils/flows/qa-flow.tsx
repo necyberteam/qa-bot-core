@@ -415,7 +415,9 @@ export const createQAFlow = ({
           return;
         }
 
-        // Handle feedback — route to correct endpoint based on rating_target
+        // Handle feedback — rates the latest answer (feedbackQueryId), routed
+        // by its rating_target. Past thumbs are disabled in CSS so they can't
+        // submit feedback against the wrong (current) answer.
         if (userInput === "👍 Helpful" || userInput === "👎 Not helpful") {
           if (feedbackQueryId) {
             const isPositive = userInput === "👍 Helpful";
@@ -613,7 +615,6 @@ export const createQAFlow = ({
                     if (tokenContent) {
                       // Tokens were streamed — content is already displayed.
                       // Just finalize the stream.
-                      console.log('[SSE DEBUG] done: tokenContent exists, skipping streamMessage, calling endStreamMessage');
                       await chatState.endStreamMessage('BOT');
                     } else {
                       // No tokens (RAG-direct, domain agent) — display the
@@ -733,7 +734,9 @@ export const createQAFlow = ({
         }
       },
 
-      // Show rating options only after final responses that have a valid rating target
+      // Show rating options only after final responses that have a valid rating target.
+      // Thumbs rate the latest answer (via feedbackQueryId); past thumbs are made
+      // non-interactive in CSS so an older one can't mis-rate the current answer.
       options: (chatState) => {
         // Don't show options if we're resetting
         if (isResetting && isResetting()) {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useFlow, useTextArea, useMessages } from 'react-chatbotify';
+import { useFlow, useTextArea } from 'react-chatbotify';
 import RefreshIcon from './icons/RefreshIcon';
 import { useSession } from '../contexts/SessionContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
@@ -8,7 +8,6 @@ import { getSessionMessageCount } from '../utils/session-utils';
 const NewChatButton: React.FC = () => {
   const { restartFlow } = useFlow();
   const { setTextAreaValue } = useTextArea();
-  const { messages } = useMessages();
   const { getSessionId, resetSession, clearResettingFlag } = useSession();
   const { trackEvent } = useAnalytics();
 

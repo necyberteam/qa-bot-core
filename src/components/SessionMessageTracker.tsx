@@ -22,17 +22,26 @@ import { logger } from '../utils/logger';
  * before firing events. We use extractTextFromJsx() to recover the text content
  * from bot messages so they appear in restored sessions.
  *
+ * Two events are tracked because answers arrive two different ways:
+ * - rcb-pre-inject-message: messages added via injectMessage() (user input,
+ *   RAG-direct/JSON answers, custom-flow messages).
+ * - rcb-stop-stream-message: the finalized message after a streamed answer.
+ *   Streaming (streamMessage/endStreamMessage) never fires the inject event,
+ *   so without this listener streamed bot answers were never persisted and
+ *   were missing from restored sessions (only the user's queries survived).
+ *
  * IMPORTANT: For custom flow messages to be tracked, use the withHistory()
  * helper function. See utils/with-history.ts for details.
  *
- * Deduplication is handled by session-utils (checks message ID).
+ * Deduplication is handled by session-utils (checks message ID), so a
+ * message that somehow surfaces in both events is only stored once.
  *
  * Must be rendered inside ChatBotProvider.
  */
 const SessionMessageTracker: React.FC = () => {
   const { getSessionId } = useSession();
 
-  const handlePreInjectMessage = useCallback((event: Event) => {
+  const handleMessage = useCallback((event: Event) => {
     const rcbEvent = event as unknown as RcbPreInjectMessageEvent;
     const message = rcbEvent.data?.message;
 
@@ -74,12 +83,14 @@ const SessionMessageTracker: React.FC = () => {
   }, [getSessionId]);
 
   useEffect(() => {
-    window.addEventListener('rcb-pre-inject-message', handlePreInjectMessage);
+    window.addEventListener('rcb-pre-inject-message', handleMessage);
+    window.addEventListener('rcb-stop-stream-message', handleMessage);
 
     return () => {
-      window.removeEventListener('rcb-pre-inject-message', handlePreInjectMessage);
+      window.removeEventListener('rcb-pre-inject-message', handleMessage);
+      window.removeEventListener('rcb-stop-stream-message', handleMessage);
     };
-  }, [handlePreInjectMessage]);
+  }, [handleMessage]);
 
   // This component renders nothing - it just listens
   return null;

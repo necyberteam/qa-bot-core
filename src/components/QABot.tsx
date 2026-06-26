@@ -4,6 +4,7 @@ import ChatBot, { ChatBotProvider, Button } from "react-chatbotify";
 import HtmlRenderer from "@rcb-plugins/html-renderer";
 import MarkdownRenderer from "@rcb-plugins/markdown-renderer";
 import InputValidator from "@rcb-plugins/input-validator";
+import MarkdownContent from './MarkdownContent';
 import BotController from './BotController';
 import LoginButton from './LoginButton';
 import UserIcon from './UserIcon';
@@ -45,7 +46,6 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
 
     // Optional functionality
     ratingEndpoint,
-    capabilitiesEndpoint,
     agentRatingEndpoint,
     welcomeMessage,
     open,
@@ -197,11 +197,12 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       embedded: isEmbeddedMode
     };
 
-    // Build header buttons array conditionally
-    // Show login button only if explicitly logged out (isLoggedIn === false)
-    // Show history button + user icon when logged in
+    // Build header buttons array conditionally.
+    // History is available in both states (session history is device-local and
+    // doesn't require login). Logged out additionally shows the login button;
+    // logged in shows the user icon.
     const headerButtons = internalIsLoggedIn === false
-      ? [<LoginButton key="login-button" loginUrl={loginUrl || defaultValues.loginUrl} isHeaderButton={true} />]
+      ? [<HistoryButton key="history-button" />, <LoginButton key="login-button" loginUrl={loginUrl || defaultValues.loginUrl} isHeaderButton={true} />]
       : [<HistoryButton key="history-button" />, <UserIcon key="user-icon" />];
 
     base.header = {
@@ -247,10 +248,14 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       defaultOpen: isEmbeddedMode ? true : false
     };
 
-    // Enable events for message tracking
+    // Enable events for message tracking.
+    // rcbStopStreamMessage is required so streamed bot answers get persisted —
+    // streaming never fires rcbPreInjectMessage, so without this the history
+    // would restore user queries with no answers. See SessionMessageTracker.
     base.event = {
       rcbPreInjectMessage: true,
       rcbPostInjectMessage: true,
+      rcbStopStreamMessage: true,
       rcbUserSubmitText: true,
       rcbChangePath: true,
       rcbToggleChatWindow: true
@@ -305,11 +310,16 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       ...qaFlow,
       ...(customFlow || {})
     };
+    // `turnstile` is intentionally omitted: it is only used via the stable
+    // `turnstileTokenRef` (token) and a `turnstile.reset()` closure. Including
+    // the hook's object — which is a new reference each render — would recreate
+    // the entire flow on every render and reset the conversation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey, qaEndpoint, ratingEndpoint, agentRatingEndpoint, welcomeMessage, internalIsLoggedIn, allowAnonAccess, loginUrl, customFlow, actingUser, trackEvent, resourceContext, backendId]);
 
   // default react-chatbotify plugins
   const plugins = useMemo(() => {
-    return [HtmlRenderer(), MarkdownRenderer(), InputValidator()];
+    return [HtmlRenderer(), MarkdownRenderer({ markdownComponent: MarkdownContent }), InputValidator()];
   }, []);
 
   // Apply hooks
