@@ -197,11 +197,12 @@ const QABot = forwardRef<BotControllerHandle, QABotProps>((props, ref) => {
       embedded: isEmbeddedMode
     };
 
-    // Build header buttons array conditionally
-    // Show login button only if explicitly logged out (isLoggedIn === false)
-    // Show history button + user icon when logged in
+    // Build header buttons array conditionally.
+    // History is available in both states (session history is device-local and
+    // doesn't require login). Logged out additionally shows the login button;
+    // logged in shows the user icon.
     const headerButtons = internalIsLoggedIn === false
-      ? [<LoginButton key="login-button" loginUrl={loginUrl || defaultValues.loginUrl} isHeaderButton={true} />]
+      ? [<HistoryButton key="history-button" />, <LoginButton key="login-button" loginUrl={loginUrl || defaultValues.loginUrl} isHeaderButton={true} />]
       : [<HistoryButton key="history-button" />, <UserIcon key="user-icon" />];
 
     base.header = {
