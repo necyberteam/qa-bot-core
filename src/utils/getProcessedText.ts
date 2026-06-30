@@ -7,8 +7,11 @@ export const getProcessedText = (text: string): string => {
   }
 
   // First pass: Handle URLs wrapped in square brackets like [https://example.com]
-  // Convert them to proper markdown links [url](url)
-  let processedText = text.replace(/\[(https?:\/\/[^\s]+?)\]/gi, '[$1]($1)');
+  // Convert them to proper markdown links [url](url).
+  // The (?!\() negative lookahead skips a [url] that is already followed by
+  // "(...)", i.e. the label of a complete [url](url) markdown link — otherwise
+  // the URL gets duplicated.
+  let processedText = text.replace(/\[(https?:\/\/[^\s]+?)\](?!\()/gi, '[$1]($1)');
 
   // Second pass: Match bare URLs that are NOT already in markdown or HTML link format
   // This looks for URLs that are not preceded by ]( or href=" or [
