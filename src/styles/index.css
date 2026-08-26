@@ -10,7 +10,7 @@
 .rcb-chat-window {
   width: 550px !important;
   max-width: calc(100%);
-  height: 800px !important;
+  height: auto !important;
   max-height: 80vh !important;
 }
 
