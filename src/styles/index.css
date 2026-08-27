@@ -61,6 +61,15 @@
 .embedded-qa-bot .rcb-chat-window {
   width: 100% !important;
   max-width: 100%;
+  /*
+   * EMBEDDED ONLY: content-driven height so the embedded resource bot opens
+   * short and grows to the cap. fit-content (not auto): the window is
+   * position:fixed with a max-height, and height:auto resolves to the
+   * max-height (opens at the cap). The floating bot keeps its normal fixed
+   * height (the bare .rcb-chat-window rule above) and is unaffected.
+   */
+  height: fit-content !important;
+  max-height: 80vh !important;
 }
 
 .qa-bot.hidden {
